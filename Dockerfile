@@ -7,5 +7,5 @@ RUN python -m venv .venv
 RUN .venv/bin/pip install --upgrade pip
 RUN .venv/bin/pip install -r requirements.txt
 
-ADD mythic /app
+ADD mythic /app/mythic
 CMD . .venv/bin/activate && python -u -m mythic.main
