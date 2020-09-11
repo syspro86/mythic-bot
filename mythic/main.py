@@ -177,29 +177,29 @@ class MythicBot:
         record['members'] = sorted(record['members'], key=lambda r: (roleNames.index(r['role']), r['spec']))
 
         try:
-            self.db.insertRecord(record)
-            logger.info(f"new record = {record['_id']}")
-            
-            minute = int(record['duration'] / 60000)
-            second = (int(record['duration'] / 1000) % 60)
-            
-            msg = f"{dungeon['name']}+{record['keystone_level']} ({ts_str2})\r\n"
-            msg += f"({record['keystone_upgrade']}) "
-            msg += f"{minute}분 {second}초"
-            for member in record['members']:
-                msg += f"\r\n{member['name']}-{member['realm']}"
-                msg += f" ({member['specName']} {member['className']})"
+            if self.db.insertRecord(record):
+                logger.info(f"new record = {record['_id']}")
+                
+                minute = int(record['duration'] / 60000)
+                second = (int(record['duration'] / 1000) % 60)
+                
+                msg = f"{dungeon['name']}+{record['keystone_level']} ({ts_str2})\r\n"
+                msg += f"({record['keystone_upgrade']}) "
+                msg += f"{minute}분 {second}초"
+                for member in record['members']:
+                    msg += f"\r\n{member['name']}-{member['realm']}"
+                    msg += f" ({member['specName']} {member['className']})"
 
-            sentBotUser = []
-            for member in record['members']:
-                shortName = f"{member['name']}-{member['realm']}"
+                sentBotUser = []
+                for member in record['members']:
+                    shortName = f"{member['name']}-{member['realm']}"
 
-                for buser in self.db.findBotUsers(shortName):
-                    if buser['_id'] not in sentBotUser:
-                        self.bot.sendMessage(chat_id=buser['_id'], text=msg)
-                        sentBotUser.append(buser['_id'])
-                        # self.bot.sendMessage(text=msg)
-                        logger.info(f"message sent! {buser['id']} {msg}")
+                    for buser in self.db.findBotUsers(shortName):
+                        if buser['_id'] not in sentBotUser:
+                            self.bot.sendMessage(chat_id=buser['_id'], text=msg)
+                            sentBotUser.append(buser['_id'])
+                            # self.bot.sendMessage(text=msg)
+                            logger.info(f"message sent! {buser['id']} {msg}")
         
             self.inserted_id_set.append(record_id)
         except Exception as e:

@@ -10,9 +10,13 @@ class MythicDatabase:
     def insertRecord(self, record):
         if self.db is None:
             logger.info(record)
-            return
+            return True
 
-        self.db.records.insert_one(record)
+        try:
+            self.db.records.insert_one(record)
+            return True
+        except pymongo.errors.DuplicateKeyError:
+            return False
 
     def findBotUsers(self, charName):
         if self.db is None:
