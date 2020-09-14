@@ -11,6 +11,10 @@ class MythicConfig:
 
             self.TELEGRAM_TOKEN = os.environ['TELEGRAM_TOKEN']
             self.ADMIN_CHAT_ID = os.environ['ADMIN_CHAT_ID']
+
+            self.WEL_UI_URL = os.environ['WEL_UI_URL']
+            self.HASH_SALT_PREFIX = os.environ['HASH_SALT_PREFIX']
+            self.HASH_SALT_SUFFIX = os.environ['HASH_SALT_SUFFIX']
         except:
             self.dev()
             pass
@@ -24,6 +28,10 @@ class MythicConfig:
 
         self.TELEGRAM_TOKEN = ''
         self.ADMIN_CHAT_ID = ''
+
+        self.WEL_UI_URL = 'https://localhost/?session='
+        self.HASH_SALT_PREFIX = 'abc'
+        self.HASH_SALT_SUFFIX = '1234'
         return self
 
 config = MythicConfig()
