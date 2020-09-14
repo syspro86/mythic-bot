@@ -1,4 +1,4 @@
 image: gitpod/workspace-full
 
 tasks:
-  - init: python -m venv .venv && . .venv/bin/activate && pip install -r ./requirements.txt
+  - init: export PIP_USER=no && python -m venv .venv && . .venv/bin/activate && pip install -r ./requirements.txt
