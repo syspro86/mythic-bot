@@ -171,12 +171,18 @@ class MythicBot:
                 m['name'] = member['profile']['name']
                 rid = member['profile']['realm']['id']
                 m['realm'] = self.realm_cache[rid]['name']
-                m['spec'] = member['specialization']['id']
-                spec = m['spec']
-                spec = self.spec_cache[spec]
-                m['className'] = spec['playable_class']['name']
-                m['specName'] = spec['name']
-                m['role'] = spec['role']['type']
+                if 'specialization' in member:
+                    m['spec'] = member['specialization']['id']
+                    spec = m['spec']
+                    spec = self.spec_cache[spec]
+                    m['className'] = spec['playable_class']['name']
+                    m['specName'] = spec['name']
+                    m['role'] = spec['role']['type']
+                else:
+                    m['spec'] = -1
+                    m['className'] = '알수없음'
+                    m['specName'] = ''
+                    m['role'] = 'UNKNOWN'
                 return m
             except KeyError as e:
                 logger.info(str(e))
@@ -184,7 +190,7 @@ class MythicBot:
                 raise e
         record['members'] = map(convert_member, rec['members'])
 
-        role_names = ['TANK', 'HEALER', 'DAMAGE']
+        role_names = ['TANK', 'HEALER', 'DAMAGE', 'UNKNOWN']
         record['members'] = sorted(record['members'], key=lambda r: (role_names.index(r['role']), r['spec']))
 
         try:
