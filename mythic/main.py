@@ -121,6 +121,8 @@ class MythicBot:
         self.current_period = periods['current_period']['id']
         period_detail = self.bn_request(f"/data/wow/mythic-keystone/period/{self.current_period}?" + self.postfix_parameter("dynamic"))
         self.end_timestamp = int(period_detail['end_timestamp'])
+        end_timestamp_str = datetime.fromtimestamp(self.end_timestamp / 1000).strftime('%Y-%m-%d %H:%M:%S')
+        logger.info(f"season: {self.current_season}, period: {self.current_period}, ends: {end_timestamp_str}")
 
         self.need_init = False
 
