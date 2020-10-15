@@ -330,6 +330,10 @@ class MythicBot:
                 if self.need_init:
                     self.init_api(True)
                     self.inserted_id_set = []
+                    
+                    # 현재 시간에 맞는 period가 없음.
+                    if self.end_timestamp < now_ts:
+                        return
 
                 for did in self.dungeon_cache.keys():
                     for rid in self.realm_cache.keys():
