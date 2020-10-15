@@ -166,17 +166,22 @@ class MythicBot:
                 record['keystone_upgrade'] = max(record['keystone_upgrade'], ku['upgrade_level'])
 
         def convert_member(member):
-            m = {}
-            m['name'] = member['profile']['name']
-            rid = member['profile']['realm']['id']
-            m['realm'] = self.realm_cache[rid]['name']
-            m['spec'] = member['specialization']['id']
-            spec = m['spec']
-            spec = self.spec_cache[spec]
-            m['className'] = spec['playable_class']['name']
-            m['specName'] = spec['name']
-            m['role'] = spec['role']['type']
-            return m
+            try:
+                m = {}
+                m['name'] = member['profile']['name']
+                rid = member['profile']['realm']['id']
+                m['realm'] = self.realm_cache[rid]['name']
+                m['spec'] = member['specialization']['id']
+                spec = m['spec']
+                spec = self.spec_cache[spec]
+                m['className'] = spec['playable_class']['name']
+                m['specName'] = spec['name']
+                m['role'] = spec['role']['type']
+                return m
+            except KeyError as e:
+                logger.info(str(e))
+                self.telegram.send_message(text=f'failed to convert member data {json.dumps(member)}')
+                raise e
         record['members'] = map(convert_member, rec['members'])
 
         role_names = ['TANK', 'HEALER', 'DAMAGE']
