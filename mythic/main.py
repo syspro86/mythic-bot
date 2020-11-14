@@ -2,6 +2,7 @@ from mythic.config import config
 from mythic.logger import logger
 from mythic.db import MythicDatabase
 from mythic.telegram import TelegramBot
+from mythic.wowapi import WowApi
 
 from apscheduler.schedulers.blocking import BlockingScheduler
 import base64
@@ -12,10 +13,10 @@ import requests
 import textwrap
 import traceback
 
-class MythicBot:
+class MythicBot(object):
     def __init__(self):
-        self.region = "kr"
-        self.access_token = None
+        self.api = WowApi("kr", config.BATTLENET_API_ID, config.BATTLENET_API_SECRET)
+
         self.inserted_id_set = []
         self.realm_cache = {}
         self.spec_cache = {}
@@ -30,96 +31,41 @@ class MythicBot:
         self.telegram.add_callback(self.on_telegram_message)
         self.telegram.send_message(text='app start')
 
-        self.db = MythicDatabase()
-
-    def get_token(self):
-        url = f"https://{self.region}.battle.net/oauth/token"
-        api_id = config.BATTLENET_API_ID
-        api_secret = config.BATTLENET_API_SECRET
-        auth = base64.b64encode((api_id + ':' + api_secret).encode()).decode('utf-8')
-
-        headers = {
-            'Authorization': 'Basic ' + auth,
-            'Content-Type': "application/x-www-form-urlencoded"
-        }
-        
-        res = requests.post(url, headers=headers, data={'grant_type': 'client_credentials'})
-        if res.status_code == 200:
-            return res.json()
-        else:
-            return ()
-
-    def locale(self):
-        if self.region == "us":
-            return "en_US"
-        elif self.region == "eu":
-            return "en_GB"
-        elif self.region ==  "kr":
-            return "ko_KR"
-        elif self.region ==  "tw":
-            return "zh_TW"
-        return ""
-
-    def region_parameter(self, namespace):
-        ret = f"region={self.region}"
-        if namespace != None:
-            ret +=f"&namespace={namespace}-{self.region}"
-        ret += "&locale=" + self.locale()
-        return ret
-
-    def postfix_parameter(self, namespace):
-        return self.region_parameter(namespace) + "&access_token=" + self.access_token
-
-    def bn_request(self, url):
-        if not url.startswith('http'):
-            url = f"https://{self.region}.api.blizzard.com:443" + url
-        #logger.info(url)
-        res = requests.get(url)
-        if res.status_code == 200:
-            return res.json()
-        else:
-            return ()
+        self.db = MythicDatabase(config.MONGO_HOST, config.MONGO_DATABASE)
 
     def init_api(self, force):
-        if self.access_token is None:
-            logger.info('get new token!')
-            res = self.get_token()
-            if 'access_token' in res:
-                self.access_token = res['access_token']
-        elif isinstance(self.access_token, bytes):
-            self.access_token = self.access_token.decode('utf-8')
 
-        realms = self.bn_request("/data/wow/realm/index?" + self.postfix_parameter("dynamic"))
+        realms = self.api.bn_request("/data/wow/realm/index?" + self.api.postfix_parameter("dynamic"))
         self.realm_cache = {}
         for realm in realms['realms']:
             realm_id = realm['id']
             self.realm_cache[realm_id] = realm
 
-        dungeons = self.bn_request("/data/wow/mythic-keystone/dungeon/index?" + self.postfix_parameter("dynamic"))
+        dungeons = self.api.bn_request("/data/wow/mythic-keystone/dungeon/index?" + self.api.postfix_parameter("dynamic"))
         self.dungeon_cache = {}
         for dungeon in dungeons['dungeons']:
             dungeon_id = dungeon['id']
-            d = self.bn_request(f"/data/wow/mythic-keystone/dungeon/{dungeon_id}?" + self.postfix_parameter("dynamic"))
+            d = self.api.bn_request(f"/data/wow/mythic-keystone/dungeon/{dungeon_id}?" + self.api.postfix_parameter("dynamic"))
             self.dungeon_cache[dungeon_id] = d
 
-        specs = self.bn_request("/data/wow/playable-specialization/index?" + self.postfix_parameter("static"))
+        specs = self.api.bn_request("/data/wow/playable-specialization/index?" + self.api.postfix_parameter("static"))
         self.spec_cache = {}
         for spec in specs['character_specializations']:
             spec_id = spec['id']
-            spec = self.bn_request("/data/wow/playable-specialization/" + str(spec_id) + "?" + self.postfix_parameter("static"))
+            spec = self.api.bn_request("/data/wow/playable-specialization/" + str(spec_id) + "?" + self.api.postfix_parameter("static"))
             self.spec_cache[spec_id] = spec
 
-        seasons = self.bn_request("/data/wow/mythic-keystone/season/index?" + self.postfix_parameter("dynamic"))
+        seasons = self.api.bn_request("/data/wow/mythic-keystone/season/index?" + self.api.postfix_parameter("dynamic"))
         self.current_season = seasons['current_season']['id']
 
-        periods = self.bn_request("/data/wow/mythic-keystone/period/index?" + self.postfix_parameter("dynamic"))
+        periods = self.api.bn_request("/data/wow/mythic-keystone/period/index?" + self.api.postfix_parameter("dynamic"))
         self.period_ids = []
         for period in periods['periods']:
             period_id = period['id']
             self.period_ids.append(period_id)
 
         self.current_period = periods['current_period']['id']
-        period_detail = self.bn_request(f"/data/wow/mythic-keystone/period/{self.current_period}?" + self.postfix_parameter("dynamic"))
+        period_detail = self.api.bn_request(f"/data/wow/mythic-keystone/period/{self.current_period}?" + self.api.postfix_parameter("dynamic"))
         self.end_timestamp = int(period_detail['end_timestamp'])
         end_timestamp_str = datetime.fromtimestamp(self.end_timestamp / 1000).strftime('%Y-%m-%d %H:%M:%S')
         logger.info(f"season: {self.current_season}, period: {self.current_period}, ends: {end_timestamp_str}")
@@ -127,8 +73,8 @@ class MythicBot:
         self.need_init = False
 
     def get_leaderboard(self, realm_id, dungeon_id, season, period):
-        board = self.bn_request(f"/data/wow/connected-realm/{realm_id}/mythic-leaderboard/{dungeon_id}/period/{period}?" + self.postfix_parameter("dynamic"))
-        if 'leading_groups' in board:
+        board = self.api.bn_request(f"/data/wow/connected-realm/{realm_id}/mythic-leaderboard/{dungeon_id}/period/{period}?" + self.api.postfix_parameter("dynamic"))
+        if board is not None and 'leading_groups' in board:
             for rec in board['leading_groups']:
                 self.insert_record(board, rec, season, dungeon_id)
 
