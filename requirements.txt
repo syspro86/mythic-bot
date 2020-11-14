@@ -5,6 +5,7 @@ cffi==1.14.2
 chardet==3.0.4
 cryptography==3.1
 decorator==4.4.2
+dnspython==1.16.0
 idna==2.10
 import==0.0.1
 isort==5.5.2
