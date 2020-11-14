@@ -17,7 +17,7 @@ class CollectAuctionBot(object):
     def __init__(self):
         self.api = WowApi("kr", config.BATTLENET_API_ID, config.BATTLENET_API_SECRET)
 
-        self.telegram = TelegramBot()
+        self.telegram = TelegramBot(polling=False)
         self.telegram.send_message(text='app start')
 
         self.db = AuctionDatabase(config.MONGO_HOST, config.MONGO_DATABASE)

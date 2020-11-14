@@ -6,15 +6,15 @@ import telegram
 from telegram.ext import Filters, MessageHandler, Updater
 
 class TelegramBot:
-    def __init__(self):
+    def __init__(self, polling=True):
         self.bot = telegram.Bot(token=config.TELEGRAM_TOKEN) if config.TELEGRAM_TOKEN is not None else None
         self.chatId = config.ADMIN_CHAT_ID
 
-        self.updater = Updater(token=config.TELEGRAM_TOKEN, use_context=True)
-
-        text_handler = MessageHandler(Filters.text, self.on_text)
-        self.updater.dispatcher.add_handler(text_handler)
-        self.updater.start_polling()
+        if polling:
+            self.updater = Updater(token=config.TELEGRAM_TOKEN, use_context=True)
+            text_handler = MessageHandler(Filters.text, self.on_text)
+            self.updater.dispatcher.add_handler(text_handler)
+            self.updater.start_polling()
 
         self.callback = []
 
