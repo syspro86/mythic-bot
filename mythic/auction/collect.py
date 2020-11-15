@@ -52,17 +52,25 @@ class CollectAuctionBot(object):
         
         for auction in auctions['auctions']:
             item_id = auction['item']['id']
-
-            item = self.db.find_item(item_id)
-            if item is None:
-                item = self.update_item(item_id)
+            item = self.update_item(item_id)
 
     def update_item(self, item_id):
-        item = self.api.bn_request(f"/data/wow/item/{item_id}", token=True, namespace="static")
+        item = self.db.find_item(item_id)
+        if item is None:
+            item = self.api.bn_request(f"/data/wow/item/{item_id}", token=True, namespace="static")
+            if item is not None:
+                item['_id'] = item['id']
+                self.db.insert_item(item)
+                logger.info(f"new item {item['_id']}")
+        
         if item is not None:
-            item['_id'] = item['id']
-            self.db.insert_item(item)
-            logger.info(f"new item {item['_id']}")
+            if 'key' in item['media']:
+                item_media = self.api.bn_request(item['media']['key']['href'], token=True)
+                if item_media is not None:
+                    item['media'] = item_media
+                    self.db.update_item(item, {'media': item['media']})
+                    logger.info(f"item media updated {item['_id']}")
+        
         return item
 
     def bot_work(self):

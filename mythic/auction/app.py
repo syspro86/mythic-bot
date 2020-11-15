@@ -11,16 +11,20 @@ app = Flask(__name__, template_folder='../../templates', static_url_path='/../..
 config = MythicConfig()
 
 class WebUtil:
+    realms = []
+
     def __init__(self):
         self.api = WowApi('kr', config.BATTLENET_API_ID, config.BATTLENET_API_SECRET)
-        realms = self.api.bn_request("/data/wow/realm/index", token=True, namespace="dynamic")
-        self.realms = []
-        for realm in realms['realms']:
-            realm_id = realm['id']
-            realm = self.api.bn_request(f"/data/wow/realm/{realm_id}", token=True, namespace="dynamic")
-            if 'connected_realm' in realm:
-                realm['connected_realm'] = self.api.bn_request(realm['connected_realm']['href'], token=True)
-            self.realms.append(realm)
+
+        if len(WebUtil.realms) == 0:
+            realms = self.api.bn_request("/data/wow/realm/index", token=True, namespace="dynamic")
+            WebUtil.realms = []
+            for realm in realms['realms']:
+                realm_id = realm['id']
+                realm = self.api.bn_request(f"/data/wow/realm/{realm_id}", token=True, namespace="dynamic")
+                if 'connected_realm' in realm:
+                    realm['connected_realm'] = self.api.bn_request(realm['connected_realm']['href'], token=True)
+                WebUtil.realms.append(realm)
 
 util = WebUtil()
 
@@ -49,7 +53,7 @@ def list_my_pets():
 
             pets = trainer['pets']
 
-    return render_template('index.html', realms=util.realms, forms=forms, pets=pets)
+    return render_template('index.html', realms=WebUtil.realms, forms=forms, pets=pets)
 
 @app.route('/pet_auction', methods=['GET', 'POST'])
 def pet_auction():
@@ -67,7 +71,7 @@ def pet_auction():
 
     my_server = None
     if realm is not None:
-        my_server = list(filter(lambda r: r['slug'] == realm, util.realms))
+        my_server = list(filter(lambda r: r['slug'] == realm, WebUtil.realms))
         if len(my_server) > 0:
             my_server = my_server[0]['connected_realm']
         else:
@@ -102,7 +106,7 @@ def pet_auction():
         if realm is not None and character_name is not None:
             item['learned'] = len(list(filter(lambda r: r['_id']['realm'] == realm and r['_id']['character_name'] == character_name, item['owner']))) > 0
 
-    return render_template('pet_auction.html', realms=util.realms, forms=forms, pet=pets)
+    return render_template('pet_auction.html', realms=WebUtil.realms, forms=forms, pet=pets)
 
 
 @app.route('/mount_auction', methods=['GET', 'POST'])
@@ -121,7 +125,7 @@ def mount_auction():
 
     my_server = None
     if realm is not None:
-        my_server = list(filter(lambda r: r['slug'] == realm, util.realms))
+        my_server = list(filter(lambda r: r['slug'] == realm, WebUtil.realms))
         if len(my_server) > 0:
             my_server = my_server[0]['connected_realm']
         else:
@@ -155,4 +159,4 @@ def mount_auction():
         #if realm is not None and character_name is not None:
         #    item['learned'] = len(list(filter(lambda r: r['_id']['realm'] == realm and r['_id']['character_name'] == character_name, item['owner']))) > 0
 
-    return render_template('mount_auction.html', realms=util.realms, forms=forms, items=items)
+    return render_template('mount_auction.html', realms=WebUtil.realms, forms=forms, items=items)

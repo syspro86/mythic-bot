@@ -54,3 +54,13 @@ class AuctionDatabase:
         except pymongo.errors.DuplicateKeyError:
             return False
 
+    def update_item(self, record, updates):
+        if self.db is None:
+            logger.info(record)
+            return True
+
+        self.db.items.update_one({
+            '_id': record['_id']
+            },{
+            '$set': updates
+        }, upsert=False)
