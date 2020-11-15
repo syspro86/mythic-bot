@@ -85,6 +85,7 @@ def missing_pet():
         item['copper'] = int(item['min_buyout']) % 100
         item['items'] = sorted(item['items'], key=lambda r: r['buyout'])
 
+        item['learned'] = False
         if realm is not None and character_name is not None:
             item['learned'] = len(list(filter(lambda r: r['_id']['realm'] == realm and r['_id']['character_name'] == character_name, item['owner']))) > 0
 
