@@ -6,5 +6,8 @@ COPY requirements.txt /app/
 RUN pip install --upgrade pip
 RUN pip install -r requirements.txt
 
-COPY mythic templates mythic.yml /app/
+COPY mythic /app/mythic
+COPY templates /app/templates
+COPY mythic.yml /app/
+
 ENTRYPOINT [ "python", "-u", "-m", "mythic.main" ]
