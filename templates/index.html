@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Wow Pet</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta charset="UTF-8">
+    </style>
+</head>
+
+<body>
+<section>
+    {% for p in pets %}
+    <div>
+    <img src="{{ p.detail.icon }}" style="height: 64px">
+    {{ p.species.name }}
+    </div>
+    {% endfor %}
+</section>
+</body>
+
+</html>
