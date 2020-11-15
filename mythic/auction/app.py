@@ -46,7 +46,7 @@ def list_my_pets():
             CollectPetBot().update_player(realm, character_name)
             player = db.find_player({'realm': realm, 'character_name': character_name})
 
-        if player is not None:
+        if player is not None and 'pets' in player:
             for p in player['pets']:
                 pet = db.find_pet(p['species']['id'])
                 p['detail'] = pet
