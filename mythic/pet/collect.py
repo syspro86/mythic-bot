@@ -97,22 +97,24 @@ class CollectPetBot(object):
                 self.db.insert_mount(mount, upsert=True)
 
     def update_player(self, realm, character_name):
-        pets = self.api.bn_request(f"/profile/wow/character/{realm}/{character_name}/collections/pets", token=True, namespace="profile")
-        logger.info(json.dumps(pets))
-        if pets is None:
-            return
-
-        if 'pets' not in pets:
-            return
-        
-        #pets = pets['pets']
-        pets['_id'] = {
+        player_id = {
             'realm': realm,
             'character_name': character_name
         }
+        player = self.db.find_player(player_id)
+        if player is None:
+            player = {
+                '_id': player_id
+            }
+            self.db.insert_player(player)
 
-        if not self.db.insert_player(pets):
-            self.db.update_player(pets, {'pets': pets['pets']})
+        pets = self.api.bn_request(f"/profile/wow/character/{realm}/{character_name}/collections/pets", token=True, namespace="profile")
+        if pets is not None and 'pets' in pets:
+            self.db.update_player(player, {'pets': pets['pets']})
+
+        mounts = self.api.bn_request(f"/profile/wow/character/{realm}/{character_name}/collections/mounts", token=True, namespace="profile")
+        if mounts is not None and 'mounts' in mounts:
+            self.db.update_player(player, {'mounts': mounts['mounts']})
 
     def bot_work(self):
         try:
