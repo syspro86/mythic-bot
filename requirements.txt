@@ -3,13 +3,19 @@ astroid==2.4.2
 certifi==2020.6.20
 cffi==1.14.2
 chardet==3.0.4
+click==7.1.2
 cryptography==3.1
 decorator==4.4.2
 dnspython==1.16.0
+Flask==1.1.2
+gunicorn==20.0.4
 idna==2.10
 import==0.0.1
 isort==5.5.2
+itsdangerous==1.1.0
+Jinja2==2.11.2
 lazy-object-proxy==1.4.3
+MarkupSafe==1.1.1
 mccabe==0.6.1
 pycparser==2.20
 pylint==2.6.0
@@ -23,4 +29,5 @@ toml==0.10.1
 tornado==6.0.4
 tzlocal==2.1
 urllib3==1.25.10
+Werkzeug==1.0.1
 wrapt==1.12.1
