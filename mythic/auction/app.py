@@ -64,14 +64,27 @@ def missing_pet():
     import pymongo
     conn = pymongo.MongoClient(config.MONGO_HOST)
     db2 = conn[config.MONGO_DATABASE]
+
+    my_server = None
+    if realm is not None:
+        my_server = list(filter(lambda r: r['slug'] == realm, util.realms))
+        if len(my_server) > 0:
+            my_server = my_server[0]['connected_realm']
+        else:
+            my_server = None
     
-    pets = db2.auctions.aggregate([
-        { '$match': { 'item.id': 82800 } },
-        { '$group': { '_id': '$item.pet_species_id', 'min_buyout': { '$min': '$buyout' }, 'items': { '$push': { 'bid': '$bid', 'buyout': '$buyout', 'quantity': '$quantity'} } } },
-        { '$sort': { 'min_buyout': 1 }},
-        { '$lookup': { 'from': 'trainers',  'localField': '_id',  'foreignField': 'pets.species.id',  'as': 'owner' } },
-        # { '$match': { 'owner._id': { '$not': { '$exists': { 'realm': realm, 'character_name': character_name } } } } },
-        ], allowDiskUse=True)
+    aggr = []
+    if my_server is None:
+        aggr.append({ '$match': { 'item.id': 82800 } })
+    else:
+        aggr.append({ '$match': { 'item.id': 82800, 'realm_id': my_server['id'] } })
+
+    aggr.append({ '$group': { '_id': '$item.pet_species_id', 'min_buyout': { '$min': '$buyout' }, 'items': { '$push': { 'bid': '$bid', 'buyout': '$buyout', 'quantity': '$quantity'} } } })
+    aggr.append({ '$sort': { 'min_buyout': 1 }})
+    aggr.append({ '$lookup': { 'from': 'trainers',  'localField': '_id',  'foreignField': 'pets.species.id',  'as': 'owner' } })
+    # aggr.append({ '$match': { 'owner._id': { '$not': { '$exists': { 'realm': realm, 'character_name': character_name } } } } })
+
+    pets = db2.auctions.aggregate(aggr, allowDiskUse=True)
 
     pets = list(pets)
 
