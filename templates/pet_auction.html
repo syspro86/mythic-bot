@@ -15,9 +15,10 @@
         <option value="{{ r.slug }}" {{ 'selected' if forms.realm == r.slug else '' }}>{{ r.name }}</option>
         {% endfor %}
     </select>
-    <input name="character_name" value="{{ forms.character_name }}">
+    <input name="character_name" value="{{ '' if forms.character_name == None else forms.character_name }}">
     <button onclick="form.submit()">조회</button>
     <button onclick="form.action='./'; form.submit()">소유펫</button>
+    <button onclick="form.action='./mount_auction'; form.submit()">경매장(탈것)</button>
     </form>
 </section>
 <section>

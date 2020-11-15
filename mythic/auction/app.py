@@ -51,8 +51,8 @@ def list_my_pets():
 
     return render_template('index.html', realms=util.realms, forms=forms, pets=pets)
 
-@app.route('/missing', methods=['GET', 'POST'])
-def missing_pet():
+@app.route('/pet_auction', methods=['GET', 'POST'])
+def pet_auction():
     db = PetDatabase(config.MONGO_HOST, config.MONGO_DATABASE)
     realm = request.form.get('realm')
     character_name = request.form.get('character_name')
@@ -102,4 +102,57 @@ def missing_pet():
         if realm is not None and character_name is not None:
             item['learned'] = len(list(filter(lambda r: r['_id']['realm'] == realm and r['_id']['character_name'] == character_name, item['owner']))) > 0
 
-    return render_template('auction.html', realms=util.realms, forms=forms, pet=pets)
+    return render_template('pet_auction.html', realms=util.realms, forms=forms, pet=pets)
+
+
+@app.route('/mount_auction', methods=['GET', 'POST'])
+def mount_auction():
+    db = PetDatabase(config.MONGO_HOST, config.MONGO_DATABASE)
+    realm = request.form.get('realm')
+    character_name = request.form.get('character_name')
+    forms = {
+        'realm': realm,
+        'character_name': character_name
+    }
+
+    import pymongo
+    conn = pymongo.MongoClient(config.MONGO_HOST)
+    db2 = conn[config.MONGO_DATABASE]
+
+    my_server = None
+    if realm is not None:
+        my_server = list(filter(lambda r: r['slug'] == realm, util.realms))
+        if len(my_server) > 0:
+            my_server = my_server[0]['connected_realm']
+        else:
+            my_server = None
+    
+    aggr = []
+    aggr.append({ '$lookup': { 'from': 'items',  'localField': 'item.id',  'foreignField': '_id',  'as': 'item_detail' } })
+    aggr.append({ '$match': { 'item_detail': { '$elemMatch': { 'item_class.id': 15, 'item_subclass.id': 5 } }}})
+
+    if my_server is not None:
+        aggr.append({ '$match': { 'realm_id': my_server['id'] } })
+
+    aggr.append({ '$group': { '_id': '$item.id', 'min_buyout': { '$min': '$buyout' }, 'item_detail': { '$first': '$item_detail' }, 'items': { '$push': { 'bid': '$bid', 'buyout': '$buyout', 'quantity': '$quantity'} } } })
+    aggr.append({ '$sort': { 'min_buyout': 1 }})
+
+    # aggr.append({ '$lookup': { 'from': 'trainers',  'localField': '_id',  'foreignField': 'pets.species.id',  'as': 'owner' } })
+    # aggr.append({ '$match': { 'owner._id': { '$not': { '$exists': { 'realm': realm, 'character_name': character_name } } } } })
+
+    items = db2.auctions.aggregate(aggr, allowDiskUse=True)
+
+    items = list(items)
+
+    for item in items:
+        item['item_detail'] = item['item_detail'][0] if len(item['item_detail']) > 0 else None
+        item['gold'] = int(item['min_buyout'] / 10000)
+        item['silver'] = int(item['min_buyout'] / 100) % 100
+        item['copper'] = int(item['min_buyout']) % 100
+        item['items'] = sorted(item['items'], key=lambda r: r['buyout'])
+
+        item['learned'] = False
+        #if realm is not None and character_name is not None:
+        #    item['learned'] = len(list(filter(lambda r: r['_id']['realm'] == realm and r['_id']['character_name'] == character_name, item['owner']))) > 0
+
+    return render_template('mount_auction.html', realms=util.realms, forms=forms, items=items)
