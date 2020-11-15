@@ -100,7 +100,7 @@ def pet_auction():
         item['gold'] = int(item['min_buyout'] / 10000)
         item['silver'] = int(item['min_buyout'] / 100) % 100
         item['copper'] = int(item['min_buyout']) % 100
-        item['items'] = sorted(item['items'], key=lambda r: r['buyout'])
+        # item['items'] = sorted(item['items'], key=lambda r: (r['buyout'] if 'buyout' in r else 0, r['bid'] if 'bid' in r else 0))
 
         item['learned'] = False
         if realm is not None and character_name is not None:
@@ -149,7 +149,7 @@ def mount_auction():
         item['gold'] = int(item['min_buyout'] / 10000)
         item['silver'] = int(item['min_buyout'] / 100) % 100
         item['copper'] = int(item['min_buyout']) % 100
-        item['items'] = sorted(item['items'], key=lambda r: r['buyout'])
+        # item['items'] = sorted(item['items'], key=lambda r: r['buyout'])
 
         item['learned'] = False
         #if realm is not None and character_name is not None:
