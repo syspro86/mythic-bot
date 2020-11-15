@@ -9,6 +9,7 @@ class WowApi:
         self.api_id = api_id
         self.api_secret = api_secret
         self.access_token = self.get_token()
+        logger.info(f'token = {self.access_token}')
 
     def get_token(self):
         url = f"https://{self.region}.battle.net/oauth/token"
@@ -39,20 +40,20 @@ class WowApi:
             return "zh_TW"
         return ""
 
-    def region_parameter(self, namespace):
-        ret = f"region={self.region}"
-        if namespace != None:
-            ret +=f"&namespace={namespace}-{self.region}"
-        ret += "&locale=" + self.locale()
-        return ret
-
-    def postfix_parameter(self, namespace):
-        return self.region_parameter(namespace) + "&access_token=" + self.access_token
-
-    def bn_request(self, url):
+    def bn_request(self, url, token=False, namespace=None):
         if not url.startswith('http'):
             url = f"https://{self.region}.api.blizzard.com:443" + url
-        #logger.info(url)
+
+        if token:
+            url += '&' if url.find('?') >= 0 else '?'
+            url += "access_token=" + self.access_token
+        if namespace != None:
+            url += '&' if url.find('?') >= 0 else '?'
+            url += f"region={self.region}"
+            url += f"&namespace={namespace}-{self.region}"
+            url += f"&locale={self.locale()}"
+
+        logger.info(url)
         res = requests.get(url)
         if res.status_code == 200:
             return res.json()

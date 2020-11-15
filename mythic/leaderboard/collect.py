@@ -35,37 +35,37 @@ class MythicBot(object):
 
     def init_api(self, force):
 
-        realms = self.api.bn_request("/data/wow/realm/index?" + self.api.postfix_parameter("dynamic"))
+        realms = self.api.bn_request("/data/wow/realm/index", token=True, namespace="dynamic")
         self.realm_cache = {}
         for realm in realms['realms']:
             realm_id = realm['id']
             self.realm_cache[realm_id] = realm
 
-        dungeons = self.api.bn_request("/data/wow/mythic-keystone/dungeon/index?" + self.api.postfix_parameter("dynamic"))
+        dungeons = self.api.bn_request("/data/wow/mythic-keystone/dungeon/index", token=True, namespace="dynamic")
         self.dungeon_cache = {}
         for dungeon in dungeons['dungeons']:
             dungeon_id = dungeon['id']
-            d = self.api.bn_request(f"/data/wow/mythic-keystone/dungeon/{dungeon_id}?" + self.api.postfix_parameter("dynamic"))
+            d = self.api.bn_request(f"/data/wow/mythic-keystone/dungeon/{dungeon_id}", token=True, namespace="dynamic")
             self.dungeon_cache[dungeon_id] = d
 
-        specs = self.api.bn_request("/data/wow/playable-specialization/index?" + self.api.postfix_parameter("static"))
+        specs = self.api.bn_request("/data/wow/playable-specialization/index", token=True, namespace="static")
         self.spec_cache = {}
         for spec in specs['character_specializations']:
             spec_id = spec['id']
-            spec = self.api.bn_request("/data/wow/playable-specialization/" + str(spec_id) + "?" + self.api.postfix_parameter("static"))
+            spec = self.api.bn_request(f"/data/wow/playable-specialization/{spec_id}", token=True, namespace="static")
             self.spec_cache[spec_id] = spec
 
-        seasons = self.api.bn_request("/data/wow/mythic-keystone/season/index?" + self.api.postfix_parameter("dynamic"))
+        seasons = self.api.bn_request("/data/wow/mythic-keystone/season/index", token=True, namespace="dynamic")
         self.current_season = seasons['current_season']['id']
 
-        periods = self.api.bn_request("/data/wow/mythic-keystone/period/index?" + self.api.postfix_parameter("dynamic"))
+        periods = self.api.bn_request("/data/wow/mythic-keystone/period/index", token=True, namespace="dynamic")
         self.period_ids = []
         for period in periods['periods']:
             period_id = period['id']
             self.period_ids.append(period_id)
 
         self.current_period = periods['current_period']['id']
-        period_detail = self.api.bn_request(f"/data/wow/mythic-keystone/period/{self.current_period}?" + self.api.postfix_parameter("dynamic"))
+        period_detail = self.api.bn_request(f"/data/wow/mythic-keystone/period/{self.current_period}", token=True, namespace="dynamic")
         self.end_timestamp = int(period_detail['end_timestamp'])
         end_timestamp_str = datetime.fromtimestamp(self.end_timestamp / 1000).strftime('%Y-%m-%d %H:%M:%S')
         logger.info(f"season: {self.current_season}, period: {self.current_period}, ends: {end_timestamp_str}")
@@ -73,7 +73,7 @@ class MythicBot(object):
         self.need_init = False
 
     def get_leaderboard(self, realm_id, dungeon_id, season, period):
-        board = self.api.bn_request(f"/data/wow/connected-realm/{realm_id}/mythic-leaderboard/{dungeon_id}/period/{period}?" + self.api.postfix_parameter("dynamic"))
+        board = self.api.bn_request(f"/data/wow/connected-realm/{realm_id}/mythic-leaderboard/{dungeon_id}/period/{period}", token=True, namespace="dynamic")
         if board is not None and 'leading_groups' in board:
             for rec in board['leading_groups']:
                 self.insert_record(board, rec, season, dungeon_id)

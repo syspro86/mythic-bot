@@ -24,7 +24,7 @@ class CollectAuctionBot(object):
 
     def update_auction_list(self, realm_id):
         now_ts = int(datetime.now().timestamp() * 1000)
-        auctions = self.api.bn_request(f"/data/wow/connected-realm/{realm_id}/auctions?" + self.api.postfix_parameter("dynamic"))
+        auctions = self.api.bn_request(f"/data/wow/connected-realm/{realm_id}/auctions", token=True, namespace="dynamic")
         #logger.info(json.dumps(auctions))
         if auctions is None:
             return
@@ -39,6 +39,7 @@ class CollectAuctionBot(object):
                 auction['first_seen_ts'] = now_ts
                 auction['last_seen_ts'] = now_ts
                 self.db.insert_auction(auction)
+                logger.info(f"new auction item {auction['_id']}")
             else:
                 self.db.update_auction(auc, {'last_seen_ts': now_ts})
         
@@ -50,15 +51,24 @@ class CollectAuctionBot(object):
                 item = self.update_item(item_id)
 
     def update_item(self, item_id):
-        item = self.api.bn_request(f"/data/wow/item/{item_id}?" + self.api.postfix_parameter("static"))
+        item = self.api.bn_request(f"/data/wow/item/{item_id}", token=True, namespace="static")
         if item is not None:
             item['_id'] = item['id']
             self.db.insert_item(item)
+            logger.info(f"new item {item['_id']}")
         return item
 
     def bot_work(self):
-        self.update_auction_list(2116)
-        return
+        try:
+            now_ts = int(datetime.now().timestamp() * 1000)
+
+            self.update_auction_list(2116)
+
+            now_ts2 = int(datetime.now().timestamp() * 1000)
+            logger.info(f'collected in {now_ts2 - now_ts} ms')
+        except Exception as e:
+            traceback.print_exc()
+            logger.info(e)
 
     def start(self, **kwargs):
         sched = BlockingScheduler()
