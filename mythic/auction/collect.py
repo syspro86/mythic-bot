@@ -22,6 +22,12 @@ class CollectAuctionBot(object):
 
         self.db = AuctionDatabase(config.MONGO_HOST, config.MONGO_DATABASE)
 
+        self.connected_realms = []
+        crealms = self.api.bn_request(f"/data/wow/connected-realm/index", token=True, namespace="dynamic")
+        for cr in crealms['connected_realms']:
+            crealm = self.api.bn_request(cr['href'], token=True)
+            self.connected_realms.append(crealm)
+
     def update_auction_list(self, realm_id):
         now_ts = int(datetime.now().timestamp() * 1000)
         auctions = self.api.bn_request(f"/data/wow/connected-realm/{realm_id}/auctions", token=True, namespace="dynamic")
@@ -36,6 +42,7 @@ class CollectAuctionBot(object):
             auction['_id'] = auction['id']
             auc = self.db.find_auction(auction['_id'])
             if auc is None:
+                auction['realm_id'] = realm_id
                 auction['first_seen_ts'] = now_ts
                 auction['last_seen_ts'] = now_ts
                 self.db.insert_auction(auction)
@@ -62,7 +69,8 @@ class CollectAuctionBot(object):
         try:
             now_ts = int(datetime.now().timestamp() * 1000)
 
-            self.update_auction_list(2116)
+            for cr in self.connected_realms:
+                self.update_auction_list(cr['id'])
 
             now_ts2 = int(datetime.now().timestamp() * 1000)
             logger.info(f'collected in {now_ts2 - now_ts} ms')
