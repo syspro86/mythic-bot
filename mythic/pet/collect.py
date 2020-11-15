@@ -96,7 +96,7 @@ class CollectPetBot(object):
                 mount['_id'] = _id
                 self.db.insert_mount(mount, upsert=True)
 
-    def update_trainer(self, realm, character_name):
+    def update_player(self, realm, character_name):
         pets = self.api.bn_request(f"/profile/wow/character/{realm}/{character_name}/collections/pets", token=True, namespace="profile")
         logger.info(json.dumps(pets))
         if pets is None:
@@ -111,8 +111,8 @@ class CollectPetBot(object):
             'character_name': character_name
         }
 
-        if not self.db.insert_trainer(pets):
-            self.db.update_trainer(pets, {'pets': pets['pets']})
+        if not self.db.insert_player(pets):
+            self.db.update_player(pets, {'pets': pets['pets']})
 
     def bot_work(self):
         try:
@@ -120,7 +120,7 @@ class CollectPetBot(object):
 
             self.update_mount_index()
             self.update_pet_index()
-            #self.update_trainer('hyjal', '터널기사')
+            #self.update_player('hyjal', '터널기사')
 
             now_ts2 = int(datetime.now().timestamp() * 1000)
             logger.info(f'collected in {now_ts2 - now_ts} ms')

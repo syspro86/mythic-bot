@@ -41,17 +41,17 @@ def list_my_pets():
     if realm is None or character_name is None:
         pass
     else:
-        trainer = db.find_trainer({'realm': realm, 'character_name': character_name})
-        if trainer is None:
-            CollectPetBot().update_trainer(realm, character_name)
-            trainer = db.find_trainer({'realm': realm, 'character_name': character_name})
+        player = db.find_player({'realm': realm, 'character_name': character_name})
+        if player is None:
+            CollectPetBot().update_player(realm, character_name)
+            player = db.find_player({'realm': realm, 'character_name': character_name})
 
-        if trainer is not None:
-            for p in trainer['pets']:
+        if player is not None:
+            for p in player['pets']:
                 pet = db.find_pet(p['species']['id'])
                 p['detail'] = pet
 
-            pets = trainer['pets']
+            pets = player['pets']
 
     return render_template('index.html', realms=WebUtil.realms, forms=forms, pets=pets)
 
@@ -85,7 +85,7 @@ def pet_auction():
 
     aggr.append({ '$group': { '_id': '$item.pet_species_id', 'min_buyout': { '$min': '$buyout' }, 'items': { '$push': { 'bid': '$bid', 'buyout': '$buyout', 'quantity': '$quantity'} } } })
     aggr.append({ '$sort': { 'min_buyout': 1 }})
-    aggr.append({ '$lookup': { 'from': 'trainers',  'localField': '_id',  'foreignField': 'pets.species.id',  'as': 'owner' } })
+    aggr.append({ '$lookup': { 'from': 'players',  'localField': '_id',  'foreignField': 'pets.species.id',  'as': 'owner' } })
     # aggr.append({ '$match': { 'owner._id': { '$not': { '$exists': { 'realm': realm, 'character_name': character_name } } } } })
 
     pets = db2.auctions.aggregate(aggr, allowDiskUse=True)
@@ -107,7 +107,6 @@ def pet_auction():
             item['learned'] = len(list(filter(lambda r: r['_id']['realm'] == realm and r['_id']['character_name'] == character_name, item['owner']))) > 0
 
     return render_template('pet_auction.html', realms=WebUtil.realms, forms=forms, pet=pets)
-
 
 @app.route('/mount_auction', methods=['GET', 'POST'])
 def mount_auction():
@@ -140,9 +139,6 @@ def mount_auction():
 
     aggr.append({ '$group': { '_id': '$item.id', 'min_buyout': { '$min': '$buyout' }, 'item_detail': { '$first': '$item_detail' }, 'items': { '$push': { 'bid': '$bid', 'buyout': '$buyout', 'quantity': '$quantity'} } } })
     aggr.append({ '$sort': { 'min_buyout': 1 }})
-
-    # aggr.append({ '$lookup': { 'from': 'trainers',  'localField': '_id',  'foreignField': 'pets.species.id',  'as': 'owner' } })
-    # aggr.append({ '$match': { 'owner._id': { '$not': { '$exists': { 'realm': realm, 'character_name': character_name } } } } })
 
     items = db2.auctions.aggregate(aggr, allowDiskUse=True)
 
