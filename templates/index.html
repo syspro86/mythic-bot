@@ -9,6 +9,18 @@
 
 <body>
 <section>
+    <form method="post">
+    <select name="realm">
+        {% for r in realms %}
+        <option value="{{ r.slug }}" {{ 'selected' if forms.realm == r.slug else '' }}>{{ r.name }}</option>
+        {% endfor %}
+    </select>
+    <input name="character_name" value="{{ forms.character_name }}">
+    <button onclick="form.submit()">조회</button>
+    <button onclick="form.action='/missing'; form.submit()">경매장</button>
+    </form>
+</section>
+<section>
     {% for p in pets %}
     <div>
     <img src="{{ p.detail.icon }}" style="height: 64px">

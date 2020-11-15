@@ -18,7 +18,8 @@ class CollectPetBot(object):
         self.api = WowApi("kr", config.BATTLENET_API_ID, config.BATTLENET_API_SECRET)
 
         self.telegram = TelegramBot(polling=False)
-        self.telegram.send_message(text='app start')
+        if __name__ == '__main__':
+            self.telegram.send_message(text='app start')
 
         self.db = PetDatabase(config.MONGO_HOST, config.MONGO_DATABASE)
 

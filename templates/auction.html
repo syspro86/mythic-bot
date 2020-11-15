@@ -9,6 +9,18 @@
 
 <body>
 <section>
+    <form method="post">
+    <select name="realm">
+        {% for r in realms %}
+        <option value="{{ r.slug }}" {{ 'selected' if forms.realm == r.slug else '' }}>{{ r.name }}</option>
+        {% endfor %}
+    </select>
+    <input name="character_name" value="{{ forms.character_name }}">
+    <button onclick="form.submit()">조회</button>
+    <button onclick="form.action='/'; form.submit()">소유펫</button>
+    </form>
+</section>
+<section>
     <table border=0>
     {% for p in pet %}
     <tr>
@@ -18,6 +30,9 @@
         </td>
         <td>
             {{ p.pet_detail.name.ko_KR }}
+        </td>
+        <td>
+            {{ '보유함' if p.learned else '' }}
         </td>
     </tr>
     {% endfor %}
