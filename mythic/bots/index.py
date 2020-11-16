@@ -1,27 +1,15 @@
 from mythic.config import config
 from mythic.logger import logger
-from mythic.telegram import TelegramBot
-from mythic.wowapi import WowApi
-from mythic.pet.db import PetDatabase
+from mythic.bots.base import BaseBot
 
-from apscheduler.schedulers.blocking import BlockingScheduler
-import base64
 from datetime import datetime
-import hashlib
-import json
-import requests
-import textwrap
-import traceback
 
-class CollectPetBot(object):
+class CollectIndexBot(BaseBot):
     def __init__(self):
-        self.api = WowApi("kr", config.BATTLENET_API_ID, config.BATTLENET_API_SECRET)
+        super().__init__()
 
-        self.telegram = TelegramBot(polling=False)
         if __name__ == '__main__':
             self.telegram.send_message(text='app start')
-
-        self.db = PetDatabase(config.MONGO_HOST, config.MONGO_DATABASE)
 
         self.init()
 
@@ -116,25 +104,17 @@ class CollectPetBot(object):
         if mounts is not None and 'mounts' in mounts:
             self.db.update_player(player, {'mounts': mounts['mounts']})
 
-    def bot_work(self):
+    def on_schedule(self):
         try:
             now_ts = int(datetime.now().timestamp() * 1000)
 
             self.update_mount_index()
             self.update_pet_index()
-            #self.update_player('hyjal', '터널기사')
 
             now_ts2 = int(datetime.now().timestamp() * 1000)
             logger.info(f'collected in {now_ts2 - now_ts} ms')
         except Exception as e:
-            traceback.print_exc()
-            logger.info(e)
-
-    def start(self, **kwargs):
-        sched = BlockingScheduler()
-        sched.add_job(self.bot_work,'cron', **kwargs)
-        sched.start()
+            self.print_error(e)
 
 if __name__ == '__main__':
-    #CollectPetBot().start(hour='0')
-    CollectPetBot().bot_work()
+    CollectIndexBot().on_schedule()

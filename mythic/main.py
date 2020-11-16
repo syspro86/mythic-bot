@@ -1,19 +1,22 @@
 import sys
 import subprocess
-from mythic.leaderboard.collect import MythicBot
-from mythic.auction.collect import CollectAuctionBot
-from mythic.pet.collect import CollectPetBot
+from mythic.bots.mythic import MythicBot
+from mythic.bots.auction import CollectAuctionBot
+from mythic.bots.index import CollectIndexBot
+from mythic.bots.player import CollectPlayerBot
 
 if __name__ == '__main__':
-    bot = 'leaderboard'
+    bot = 'mythic'
     if len(sys.argv) >= 2:
         bot = sys.argv[1]
     
-    if bot == 'leaderboard':
-        MythicBot().start(minute='*/10')
+    if bot == 'mythic':
+        MythicBot().cron(minute='*/10')
     elif bot == 'auction':
-        CollectAuctionBot().start(minute='*/10')
-    elif bot == 'pet':
-        CollectPetBot().start(hour='*')
-    elif bot == 'pet-web':
-        subprocess.call(['gunicorn', 'mythic.auction.app:app'])
+        CollectAuctionBot().cron(minute='*/10')
+    elif bot == 'index':
+        CollectIndexBot().cron(hour='0')
+    elif bot == 'player':
+        CollectPlayerBot().cron(hour='*')
+    elif bot == 'web':
+        subprocess.call(['gunicorn', 'mythic.web.app:app', '--timeout', '200'])

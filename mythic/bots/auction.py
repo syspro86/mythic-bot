@@ -1,26 +1,14 @@
 from mythic.config import config
 from mythic.logger import logger
-from mythic.telegram import TelegramBot
-from mythic.wowapi import WowApi
-from mythic.auction.db import AuctionDatabase
+from mythic.bots.base import BaseBot
 
-from apscheduler.schedulers.blocking import BlockingScheduler
-import base64
 from datetime import datetime
-import hashlib
-import json
-import requests
-import textwrap
-import traceback
 
-class CollectAuctionBot(object):
+class CollectAuctionBot(BaseBot):
     def __init__(self):
-        self.api = WowApi("kr", config.BATTLENET_API_ID, config.BATTLENET_API_SECRET)
+        super().__init__()
 
-        self.telegram = TelegramBot(polling=False)
         self.telegram.send_message(text='app start')
-
-        self.db = AuctionDatabase(config.MONGO_HOST, config.MONGO_DATABASE)
 
         self.connected_realms = []
         crealms = self.api.bn_request(f"/data/wow/connected-realm/index", token=True, namespace="dynamic")
@@ -38,21 +26,28 @@ class CollectAuctionBot(object):
         if 'auctions' not in auctions:
             return
         
-        for auction in auctions['auctions']:
+        auctions = auctions['auctions']
+
+        for auction in auctions:
             auction['_id'] = auction['id']
-            auc = self.db.find_auction(auction['_id'])
-            if auc is None:
-                auction['realm_id'] = realm_id
-                auction['first_seen_ts'] = now_ts
-                auction['last_seen_ts'] = now_ts
-                self.db.insert_auction(auction)
-                logger.info(f"new auction item {auction['_id']}")
-            else:
-                self.db.update_auction(auc, {'last_seen_ts': now_ts})
+            auction['realm_id'] = realm_id
+            auction['first_seen_ts'] = now_ts
         
-        for auction in auctions['auctions']:
-            item_id = auction['item']['id']
-            item = self.update_item(item_id)
+        for i in range(0, len(auctions), 10000):
+            split = auctions[i:i+10000]
+            try:
+                self.db.insert_many('auctions', split, ordered=False)
+            except Exception as e:
+                print(type(e))
+
+            keys = list(map(lambda r: r['_id'], split))
+            self.db.update_many('auctions',
+                { '_id': { '$in': keys } },
+                { '$set': { 'last_seen_ts': now_ts } })
+        
+        item_ids = sorted(list(set(map(lambda r: r['item']['id'], auctions))))
+        for item_id in item_ids:
+            self.update_item(item_id)
 
     def update_item(self, item_id):
         item = self.db.find_item(item_id)
@@ -73,7 +68,7 @@ class CollectAuctionBot(object):
         
         return item
 
-    def bot_work(self):
+    def on_schedule(self):
         try:
             now_ts = int(datetime.now().timestamp() * 1000)
 
@@ -83,14 +78,7 @@ class CollectAuctionBot(object):
             now_ts2 = int(datetime.now().timestamp() * 1000)
             logger.info(f'collected in {now_ts2 - now_ts} ms')
         except Exception as e:
-            traceback.print_exc()
-            logger.info(e)
-
-    def start(self, **kwargs):
-        sched = BlockingScheduler()
-        sched.add_job(self.bot_work,'cron', **kwargs)
-        sched.start()
+            self.print_error(e)
 
 if __name__ == '__main__':
-    #CollectAuctionBot().start(minute='*/10')
-    CollectAuctionBot().bot_work()
+    CollectAuctionBot().on_schedule()

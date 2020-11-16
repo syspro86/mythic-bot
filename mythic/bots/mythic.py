@@ -1,21 +1,17 @@
 from mythic.config import config
 from mythic.logger import logger
-from mythic.telegram import TelegramBot
-from mythic.wowapi import WowApi
-from mythic.leaderboard.db import MythicDatabase
+from mythic.bots.base import BaseBot
 
-from apscheduler.schedulers.blocking import BlockingScheduler
 import base64
 from datetime import datetime
 import hashlib
 import json
 import requests
 import textwrap
-import traceback
 
-class MythicBot(object):
+class MythicBot(BaseBot):
     def __init__(self):
-        self.api = WowApi("kr", config.BATTLENET_API_ID, config.BATTLENET_API_SECRET)
+        super().__init__()
 
         self.inserted_id_set = []
         self.realm_cache = {}
@@ -27,11 +23,8 @@ class MythicBot(object):
         self.init_api(False)
         self.need_init = False
 
-        self.telegram = TelegramBot()
         self.telegram.add_callback(self.on_telegram_message)
         self.telegram.send_message(text='app start')
-
-        self.db = MythicDatabase(config.MONGO_HOST, config.MONGO_DATABASE)
 
     def init_api(self, force):
 
@@ -166,9 +159,7 @@ class MythicBot(object):
         
             self.inserted_id_set.append(record_id)
         except Exception as e:
-            traceback.print_exc()
-            logger.info(e)
-            pass
+            self.print_error(e)
 
     def on_telegram_message(self, chat_id, message):
         if message == '/me':
@@ -275,7 +266,7 @@ class MythicBot(object):
                         msg += record_msg.replace('\n\n', '\n').strip() + "\n\n"
                     self.telegram.send_message(chat_id=chat_id, text=msg)
 
-    def bot_work(self):
+    def on_schedule(self):
         try:
             now_ts = int(datetime.now().timestamp() * 1000)
             if self.end_timestamp < now_ts:
@@ -297,8 +288,7 @@ class MythicBot(object):
             logger.info(f'collected in {now_ts2 - now_ts} ms')
         except Exception as e:
             self.need_init = True
-            traceback.print_exc()
-            logger.info(e)
+            self.print_error(e)
 
             self.telegram.send_message(text=str(e))
         except:
@@ -307,11 +297,5 @@ class MythicBot(object):
             self.telegram.send_message(text='unknown error')
             raise
 
-    def start(self, **kwargs):
-        sched = BlockingScheduler()
-        sched.add_job(self.bot_work,'cron', **kwargs)
-        sched.start()
-
 if __name__ == '__main__':
-    #MythicBot().start(minute='*/10')
-    MythicBot().bot_work()
+    MythicBot().on_schedule()
