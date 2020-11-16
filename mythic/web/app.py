@@ -151,7 +151,6 @@ def pet_auction():
 
 @app.route('/mount_auction', methods=['GET', 'POST'])
 def mount_auction():
-    db = MythicDatabase(config.MONGO_HOST, config.MONGO_DATABASE)
     realm = request.form.get('realm')
     character_name = request.form.get('character_name')
     forms = {
