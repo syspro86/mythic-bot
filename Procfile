@@ -1,1 +1,1 @@
-web: gunicorn mythic.web.app:app
+web: gunicorn mythic.web.app:app --timeout 200
