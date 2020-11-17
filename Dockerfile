@@ -8,5 +8,6 @@ RUN pip install -r requirements.txt
 
 COPY mythic /app/mythic
 COPY mythic.yml /app/
+COPY startup.sh /app/
 
-ENTRYPOINT [ "python", "-u", "-m", "mythic.main" ]
+ENTRYPOINT ["/app/startup.sh" ]
