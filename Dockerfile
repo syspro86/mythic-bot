@@ -11,4 +11,4 @@ COPY mythic.yml /app/
 COPY startup.sh /app/
 RUN chmod +x /app/startup.sh
 
-ENTRYPOINT ["/bin/bash", "-c", "/app/startup.sh"]
+ENTRYPOINT ["/bin/bash", "/app/startup.sh"]
