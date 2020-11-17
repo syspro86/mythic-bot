@@ -1,1 +1,1 @@
-web: gunicorn mythic.auction.app:app
+web: gunicorn mythic.web.app:app
