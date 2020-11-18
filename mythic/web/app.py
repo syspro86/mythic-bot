@@ -5,6 +5,7 @@ from mythic.db import MythicDatabase
 from mythic.wowapi import WowApi
 from mythic.bots.base import BaseBot
 from mythic.bots.player import CollectPlayerBot
+from datetime import datetime
 
 app = Flask(__name__)
 
@@ -26,6 +27,9 @@ class WebUtil(BaseBot):
             self.realms.append(realm)
 
     def pets(self, realm, character_name):
+        my_server = list(filter(lambda r: r['slug'] == realm, self.realms))
+        my_server = my_server[0]['connected_realm']
+
         player = self.db.find_player({'realm': realm, 'character_name': character_name})
         if player is None:
             CollectPlayerBot().update_player(realm, character_name)
@@ -33,14 +37,26 @@ class WebUtil(BaseBot):
 
         if player is not None and 'pets' in player:
             pets = player['pets']
-            pet_ids = list(map(lambda r: r['species']['id'], pets))
+            pets = sorted(player['pets'], key=lambda r: r['species']['id'])
+            pet_ids = list(set(map(lambda r: r['species']['id'], pets)))
             pet_details = self.db.list_doc('pets', { '_id': { '$in': pet_ids } })
 
-            for p in player['pets']:
+            min_ts = int(datetime.now().timestamp() * 1000) - 1000 * 60 * 60 * 24 * 7 # 1week
+            aggr = []
+            aggr.append({ '$match': { 'realm_id': my_server['id'], 'item.id': 82800, 'last_seen_ts': { '$gte': min_ts } } })
+            aggr.append({ '$match': { 'item.pet_species_id': { '$in': pet_ids }  } })
+            aggr.append({ '$group': { '_id': '$item.pet_species_id', 'min_buyout': { '$min': '$buyout' } } })
+            auctions = self.db.aggregate('auctions', aggr)
+            auctions = list(auctions)
+
+            for p in pets:
                 f = filter(lambda r: r['_id'] == p['species']['id'], pet_details)
                 p['detail'] = next(f, None)
+                f = filter(lambda r: r['_id'] == p['species']['id'], auctions)
+                p['auction'] = next(f, { 'min_buyout': 0 })
 
-            pets = player['pets']
+            pets = reversed(sorted(pets, key=lambda r: r['auction']['min_buyout']))
+
             return pets
         return []
 
@@ -48,8 +64,10 @@ class WebUtil(BaseBot):
         my_server = list(filter(lambda r: r['slug'] == realm, self.realms))
         my_server = my_server[0]['connected_realm']
         
+        min_ts = int(datetime.now().timestamp() * 1000) - 1000 * 60 * 30 # 30min
+
         aggr = []
-        aggr.append({ '$match': { 'realm_id': my_server['id'], 'item.id': 82800 } })
+        aggr.append({ '$match': { 'realm_id': my_server['id'], 'item.id': 82800, 'last_seen_ts': { '$gte': min_ts } } })
         aggr.append({ '$sort': { 'item.pet_species_id':1, 'buyout': 1 } })
         aggr.append({ '$group': { '_id': '$item.pet_species_id', 'min_buyout': { '$min': '$buyout' }, 'items': { '$push': { 'bid': '$bid', 'buyout': '$buyout', 'quantity': '$quantity'} } } })
         aggr.append({ '$sort': { 'min_buyout': 1 }})
@@ -90,8 +108,10 @@ class WebUtil(BaseBot):
         my_server = list(filter(lambda r: r['slug'] == realm, self.realms))
         my_server = my_server[0]['connected_realm']
         
+        min_ts = int(datetime.now().timestamp() * 1000) - 1000 * 60 * 30 # 30min
+
         aggr = []
-        aggr.append({ '$match': { 'realm_id': my_server['id'] } })
+        aggr.append({ '$match': { 'realm_id': my_server['id'], 'last_seen_ts': { '$gte': min_ts } } })
         aggr.append({ '$lookup': { 'from': 'items',  'localField': 'item.id',  'foreignField': '_id',  'as': 'item_detail' } })
         aggr.append({ '$match': { 'item_detail': { '$elemMatch': { 'item_class.id': 15, 'item_subclass.id': 5 } } } })
 
@@ -101,6 +121,15 @@ class WebUtil(BaseBot):
         items = self.db.aggregate('auctions', aggr)
         items = list(items)
 
+        #items_ids = list(map(lambda r: r['_id'], items))
+        #items_details = self.db.list_doc('mounts', { '_id': { '$in': items_ids } })
+
+        #player = None
+        #if character_name != '':
+        #    player = self.db.find_player({ 'realm': realm, 'character_name': character_name})
+        #    if player is not None and 'mounts' not in player:
+        #        player = None
+
         for item in items:
             item['item_detail'] = item['item_detail'][0] if len(item['item_detail']) > 0 else None
             item['gold'] = int(item['min_buyout'] / 10000)
@@ -109,8 +138,8 @@ class WebUtil(BaseBot):
             # item['items'] = sorted(item['items'], key=lambda r: r['buyout'])
 
             item['learned'] = False
-            #if realm is not None and character_name is not None:
-            #    item['learned'] = len(list(filter(lambda r: r['_id']['realm'] == realm and r['_id']['character_name'] == character_name, item['owner']))) > 0
+            #if player != None:
+            #    item['learned'] = len(list(filter(lambda r: r['mount']['id'] == item['_id'], player['mounts']))) > 0
 
         return items
 
