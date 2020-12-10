@@ -41,7 +41,6 @@ class MythicConfig:
                 self.HASH_SALT_SUFFIX = web['hash_salt_suffix']
 
         except:
-            print(e)
             pass
 
     def update(self, env, key):
