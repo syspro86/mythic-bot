@@ -8,13 +8,14 @@ class CollectAuctionBot(BaseBot):
     def __init__(self):
         super().__init__()
 
-        self.telegram.send_message(text='app start')
-
         self.connected_realms = []
         crealms = self.api.bn_request(f"/data/wow/connected-realm/index", token=True, namespace="dynamic")
         for cr in crealms['connected_realms']:
             crealm = self.api.bn_request(cr['href'], token=True)
             self.connected_realms.append(crealm)
+
+        if __name__ == '__main__':
+            self.telegram.send_message(text='auction app start')
 
     def update_auction_list(self, realm_id):
         now_ts = int(datetime.now().timestamp() * 1000)

@@ -48,7 +48,7 @@ class MythicDatabase:
 
         query = {}
         if char_name is not None:
-            query['chatacters'] = char_name
+            query['characters'] = char_name
         if chat_id is not None:
             query['_id'] = str(chat_id)
 

@@ -7,11 +7,10 @@ from datetime import datetime
 class CollectIndexBot(BaseBot):
     def __init__(self):
         super().__init__()
+        self.init()
 
         if __name__ == '__main__':
-            self.telegram.send_message(text='app start')
-
-        self.init()
+            self.telegram.send_message(text='index app start')
 
     def init(self):
         realms = self.api.bn_request("/data/wow/realm/index", token=True, namespace="dynamic")

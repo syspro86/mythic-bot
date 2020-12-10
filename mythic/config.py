@@ -6,6 +6,7 @@ class MythicConfig:
         self.load_yml()
 
         env = dict(os.environ)
+        self.update(env, 'BATTLENET_REGION')
         self.update(env, 'BATTLENET_API_ID')
         self.update(env, 'BATTLENET_API_SECRET')
         self.update(env, 'MONGO_HOST')
@@ -22,6 +23,7 @@ class MythicConfig:
                 conf = yaml.load(f, Loader=yaml.FullLoader)
 
                 battlenet = conf['battlenet']
+                self.BATTLENET_REGION = battlenet['region']
                 self.BATTLENET_API_ID  = battlenet['api_id']
                 self.BATTLENET_API_SECRET = battlenet['api_secret']
 
@@ -37,7 +39,9 @@ class MythicConfig:
                 self.WEL_UI_URL = web['url']
                 self.HASH_SALT_PREFIX = web['hash_salt_prefix']
                 self.HASH_SALT_SUFFIX = web['hash_salt_suffix']
+
         except:
+            print(e)
             pass
 
     def update(self, env, key):

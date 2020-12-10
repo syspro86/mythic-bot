@@ -8,13 +8,17 @@ from mythic.db import MythicDatabase
 from mythic.telegram import TelegramBot
 
 class BaseBot(object):
+    _region_ = None
     _api_ = None
     _db_ = None
     _telegram_ = None
+    _sched_ = BlockingScheduler()
 
     def __init__(self):
+        if BaseBot._region_ is None:
+            BaseBot._region_ = config.BATTLENET_REGION
         if BaseBot._api_ is None:
-            BaseBot._api_ = WowApi("kr", config.BATTLENET_API_ID, config.BATTLENET_API_SECRET)
+            BaseBot._api_ = WowApi(BaseBot._region_, config.BATTLENET_API_ID, config.BATTLENET_API_SECRET)
         if BaseBot._db_ is None:
             BaseBot._db_ = MythicDatabase(config.MONGO_HOST, config.MONGO_DATABASE)
         if BaseBot._telegram_ is None:
@@ -27,10 +31,12 @@ class BaseBot(object):
     def on_schedule(self):
         pass
 
+    @classmethod
+    def start_cron(cls):
+        BaseBot._sched_.start()
+
     def cron(self, **kwargs):
-        sched = BlockingScheduler()
-        sched.add_job(self.on_schedule, 'cron', **kwargs)
-        sched.start()
+        BaseBot._sched_.add_job(self.on_schedule, 'cron', **kwargs)
 
     def print_error(self, e):
         traceback.print_exc()
