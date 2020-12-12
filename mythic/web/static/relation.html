@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+<title>Mythic+</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta charset="UTF-8">
+<link rel="stylesheet" href="css/angular-material.min.css">
+<link rel="stylesheet" href="css/vis.min.css">
+
+<script charset='UTF-8'>
+window['adrum-start-time'] = new Date().getTime();
+(function(config){
+    config.appKey = 'AD-AAB-AAK-EFJ';
+    config.adrumExtUrlHttp = 'http://cdn.appdynamics.com';
+    config.adrumExtUrlHttps = 'https://cdn.appdynamics.com';
+    config.beaconUrlHttp = 'http://col.eum-appdynamics.com';
+    config.beaconUrlHttps = 'https://col.eum-appdynamics.com';
+    //config.xd = {enable : true};
+    config.angular = true;
+    config.xd = {enable : true};
+    config.spa = {
+        "spa2": true
+    };
+})(window['adrum-config'] || (window['adrum-config'] = {}));
+</script>
+<script src='//cdn.appdynamics.com/adrum/adrum-4.5.9.2098.js'></script>
+	
+</head>
+
+<body ng-app="MyApp" ng-controller="MyController" ng-cloak>
+	<section layout="column" style="margin: 5px;">
+		<section layout="row">
+			<input flex type="text" ng-model="characterName" /> <select
+				name="server" ng-model="server">
+				<option ng-repeat="server in servers" value="{{server}}">{{server}}</option>
+			</select> <input type="number" ng-model="minimumRun" min="1" max="10000" />
+			<md-button ng-click="search()" class="md-primary md-raised">조회</md-button>
+			<!--    <md-button ng-click="optimize()" class="md-primary md-raised">미만 제거</md-button> -->
+		</section>
+
+		<section flex layout="row">
+			<div flex id="relations" style="height: 100vh"></div>
+		</section>
+	</section>
+
+	<script src="js/angular.min.js"></script>
+	<script src="js/angular-animate.min.js"></script>
+	<script src="js/angular-aria.min.js"></script>
+	<script src="js/angular-messages.min.js"></script>
+	<script src="js/angular-material.min.js"></script>
+	<script src="js/realms.js"></script>
+	<script src="js/dungeons.js"></script>
+	<script src="js/talents.js"></script>
+	<script src="js/specs.js"></script>
+	<script src="js/vis.min.js"></script>
+
+	<script>
+
+        var app = angular.module('MyApp', ['ngMaterial']);
+        app.controller('MyController', MyController);
+
+        function MyController($scope, $http, $timeout) {
+            $scope.characterName = ''
+            $scope.server = ''
+            $scope.servers = {}
+            $scope.serverNames = []
+            $scope.dungeons = {}
+            $scope.dungeonNames = []
+            $scope.minimumRun = 1
+
+            $scope.players = new vis.DataSet([])
+            $scope.relations = new vis.DataSet([])
+            $scope.nextId = 1
+
+            $scope.servers = REALMS
+            for (var key in $scope.servers) {
+                $scope.serverNames.push($scope.servers[key])
+            }
+            
+            $http({
+                method: 'GET',
+                url: 'form/realms',
+            }).then(function (resp) {
+                $scope.servers = resp.data
+                for (var key in $scope.servers) {
+                    $scope.serverNames.push($scope.servers[key])
+                }
+                $scope.server = $scope.serverNames[0]
+            }).catch(function () {
+            })
+
+            $scope.dungeons = DUNGEONS
+            for (var key in $scope.dungeons) {
+                $scope.dungeonNames.push($scope.dungeons[key].name)
+            }
+
+            var container = document.getElementById('relations')
+            var data = {
+                nodes: $scope.players,
+                edges: $scope.relations
+            }
+            var options = {}
+            var network = new vis.Network(container, data, options)
+            network.on('doubleClick', function(e) {
+                if (e.nodes.length > 0) {
+                    var id = e.nodes[0]
+                    var pl = $scope.players.get().find(function(p) {
+                        return p.id == id
+                    })
+                    var name = pl.label
+                    $scope.server = name.substring(name.indexOf('-') + 1)
+                    $scope.characterName = name.substring(0, name.indexOf('-'))
+                    $scope.search()
+                }
+            })
+            
+            $scope.search = function () {
+                if ($scope.characterName != '') {
+                    $http({
+                        method: 'GET',
+                        url: 'char/relation/' + encodeURI($scope.server) + '/' + encodeURI($scope.characterName),
+                    }).then(function (resp) {
+                        console.log(resp.data)
+                        var data = resp.data
+
+                        var i1 = $scope.players.get().find(function(p) {
+                            return p.label == $scope.characterName + '-' + $scope.server
+                        })
+                        if (i1 === undefined) {
+                            i1 = {
+                                id: $scope.nextId++,
+                                label: $scope.characterName + '-' + $scope.server
+                            }
+                            $scope.players.add(i1)
+                        }
+
+                        data.forEach(function(dd) {
+                            if (dd.value >= $scope.minimumRun) {
+                                var i2 = $scope.players.get().find(function(p) {
+                                    return p.label == dd.name + '-' + dd.realm
+                                })
+                                if (i2 === undefined) {
+                                    i2 = {
+                                        id: $scope.nextId++,
+                                        label: dd.name + '-' + dd.realm
+                                    }
+                                    $scope.players.add(i2)
+                                }
+                                
+                                var exists = false
+                                $scope.relations.forEach(function(rel) {
+                                    if (rel.from == i1.id && rel.to == i2.id) {
+                                        exists = true
+                                    } else if (rel.from == i2.id && rel.to == i1.id) {
+                                        exists = true
+                                    }
+                                })
+                                if (!exists) {
+                                    $scope.relations.add({from: i1.id, to: i2.id, value: dd.value, title: dd.value })
+                                    //width: ((dd.value + 1) / 2)
+                                }
+                            }
+                        })
+                    }).catch(function () {
+                    })
+                }
+            }
+
+            $scope.optimize = function() {
+                $scope.relations.forEach(function(rel) {
+                    if (rel.value < $scope.minimumRun) {
+                        $scope.relations.remove(rel.id)
+                    }
+                })
+                $scope.players.forEach(function(player) {
+                    if (!$scope.relations.get().some(function(rel) {
+                        return rel.from == player.id || rel.to == player.id
+                    })) {
+                        $scope.players.remove(player.id)
+                    }
+                })
+            }
+        }
+    </script>
+</body>
+
+</html>

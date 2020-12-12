@@ -21,7 +21,7 @@ class TelegramBot(BaseBot):
 
         self.telegram = TBot(polling=True)
         self.telegram.add_callback(self.on_telegram_message)
-        self.telegram.send_message(text='app start')
+        self.telegram.send_message(text='telegram app start')
 
     def init_api(self, force):
 

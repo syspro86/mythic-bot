@@ -42,7 +42,7 @@ class MythicDatabase:
             '_id': user['_id']
         }, user, upsert=upsert)
 
-    def find_botusers(self, char_name=None, chat_id=None):
+    def find_botusers(self, char_name=None, chat_id=None, session=None):
         if self.db is None:
             return []
 
@@ -51,6 +51,8 @@ class MythicDatabase:
             query['characters'] = char_name
         if chat_id is not None:
             query['_id'] = str(chat_id)
+        if session is not None:
+            query['webSessionId'] = session
 
         return list(self.db.botusers.find(query))
 

@@ -22,4 +22,4 @@ if __name__ == '__main__':
         TelegramBot().cron(hour='*')
         BaseBot.start_cron()
     elif bot == 'web':
-        subprocess.call(['gunicorn', 'mythic.web.app:app', '--timeout', '200'])
+        subprocess.call(['gunicorn', 'mythic.web.app:app', '--timeout', '3600'])

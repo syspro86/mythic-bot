@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, jsonify
 from mythic.config import MythicConfig
 from mythic.logger import logger
 from mythic.db import MythicDatabase
@@ -7,7 +7,7 @@ from mythic.bots.base import BaseBot
 from mythic.bots.player import CollectPlayerBot
 from datetime import datetime
 
-app = Flask(__name__)
+app = Flask(__name__, static_url_path="", static_folder="static")
 
 config = MythicConfig()
 
@@ -16,6 +16,10 @@ class WebUtil(BaseBot):
     def __init__(self):
         super().__init__()
         self.realms = []
+        self.realm_name = {}
+        self.realm_name_to_slug = {}
+        self.dungeon_cache = {}
+        self.specs = {}
 
         realms = self.api.bn_request("/data/wow/realm/index", token=True, namespace="dynamic")
         self.realms = []
@@ -25,6 +29,31 @@ class WebUtil(BaseBot):
             if 'connected_realm' in realm:
                 realm['connected_realm'] = self.api.bn_request(realm['connected_realm']['href'], token=True)
             self.realms.append(realm)
+        for realm in realms['realms']:
+            realm_id = realm['id']
+            self.realm_name[realm_id] = realm['name']
+            self.realm_name_to_slug[realm['name']] = realm['slug']
+
+        dungeons = self.api.bn_request("/data/wow/mythic-keystone/dungeon/index", token=True, namespace="dynamic")
+        self.dungeon_cache = {}
+        for dungeon in dungeons['dungeons']:
+            dungeon_id = dungeon['id']
+            d = self.api.bn_request(f"/data/wow/mythic-keystone/dungeon/{dungeon_id}", token=True, namespace="dynamic")
+            self.dungeon_cache[dungeon_id] = d
+
+        periods = self.api.bn_request("/data/wow/mythic-keystone/period/index", token=True, namespace="dynamic")
+        self.period_ids = []
+        for period in periods['periods']:
+            period_id = period['id']
+            self.period_ids.append(period_id)
+
+        self.current_period = periods['current_period']['id']
+
+        specs = self.api.bn_request('/data/wow/playable-specialization/index', token=True, namespace="static")
+        for spec in specs['character_specializations']:
+            spec_id = spec["id"]
+            spec = self.api.bn_request(f'/data/wow/playable-specialization/{spec_id}', token=True, namespace="static")
+            self.specs[spec_id] = spec
 
     def pets(self, realm, character_name):
         my_server = list(filter(lambda r: r['slug'] == realm, self.realms))
@@ -145,7 +174,107 @@ class WebUtil(BaseBot):
 
 util = WebUtil()
 
-@app.route('/', methods=['GET', 'POST'])
+@app.route('/form/init')
+def form_init():
+    return jsonify({
+        'region': "kr",
+        'realms': util.realm_name,
+        'dungeons': util.dungeon_cache,
+        'specs': util.specs,
+    })
+
+@app.route('/form/realms')
+def form_realms():
+    return jsonify(util.realm_name)
+
+@app.route('/user/<session>')
+def user_session(session):
+    users = util.db.find_botusers(session=session)
+    if len(users) > 0:
+        return jsonify(users[0])
+    else:
+        return None
+
+@app.route('/user/<session>/char')
+def user_session_char(session):
+    users = util.db.find_botusers(session=session)
+    if len(users) > 0:
+        return jsonify(users[0]['characters'])
+    else:
+        return None
+
+@app.route('/user/<session>/comments')
+def user_session_comments(session):
+    users = util.db.find_botusers(session=session)
+    if len(users) > 0:
+        return jsonify(users[0]['userComments'])
+    else:
+        return None
+
+@app.route('/char/profile/<realm>/<name>')
+def char_profile_realm_name(realm, name):
+    realm = util.realm_name_to_slug[realm]
+    profile = util.api.bn_request(f'/profile/wow/character/{realm}/{name}', token=True, namespace="profile")
+    media = util.api.bn_request(f'/profile/wow/character/{realm}/{name}/character-media', token=True, namespace="profile")
+    if profile is not None:
+        if media is not None:
+            profile['avatar_url']   = list(filter(lambda r: r['key'] == 'avatar',   media['assets']))[0]['value']
+            profile['inset_url']    = list(filter(lambda r: r['key'] == 'inset',    media['assets']))[0]['value']
+            profile['main_url']     = list(filter(lambda r: r['key'] == 'main',     media['assets']))[0]['value']
+            profile['main_raw_url'] = list(filter(lambda r: r['key'] == 'main-raw', media['assets']))[0]['value']
+        return jsonify(profile)
+    else:
+        return jsonify({})
+
+@app.route('/char/record/<realm>/<name>')
+def char_record_realm_name(realm, name):
+    records = util.db.aggregate('records', [
+        { '$match': {
+            'members': { '$elemMatch': { 'name': name, 'realm': realm } }
+        } },
+        { '$sort': { 'completed_timestamp': -1 } },
+        { '$limit': 20 }
+    ])
+
+    if len(records) > 0:
+        records = sorted(records, key=lambda r: (-r['keystone_level'], -r['keystone_upgrade'], -r['duration']))
+        return jsonify(records)
+    else:
+        return jsonify([])
+
+@app.route('/char/weekly/<realm>/<name>')
+def char_weekly_realm_name(realm, name):
+    records = util.db.aggregate('records', [
+        { '$match': {
+            'members': { '$elemMatch': { 'name': name, 'realm': realm } },
+            'period': util.current_period
+        } }
+    ])
+
+    if len(records) > 0:
+        records = sorted(records, key=lambda r: (-r['keystone_level'], -r['keystone_upgrade'], -r['duration']))
+        return jsonify(records[0])
+    else:
+        return jsonify(None)
+
+@app.route('/char/relation/<realm>/<name>')
+def char_relation_realm_name(realm, name):
+    records = util.db.aggregate('records', [
+        { '$match': {
+            'members': { '$elemMatch': { 'name': name, 'realm': realm } }
+        } },
+        { '$unwind': '$members' },
+        { '$group': { '_id': { 'name': '$members.name', 'realm': '$members.realm'}, 'value': {'$sum': 1} } },
+        { '$sort': { 'value': -1 } },
+    ])
+    if len(records) > 0:
+        records = list(map(lambda r: { 'name': r['_id']['name'], 'realm': r['_id']['realm'], 'value': r['value'] }, records))
+        records = list(filter(lambda r: r['name'] != name or r['realm'] != realm, records))
+        return jsonify(records)
+    else:
+        return jsonify([])
+
+@app.route('/my_pet', methods=['GET', 'POST'])
 def list_my_pets():
     realm = request.form.get('realm')
     character_name = request.form.get('character_name')
@@ -162,7 +291,7 @@ def list_my_pets():
     else:
         pets = util.pets(realm, character_name)
 
-    return render_template('index.html', realms=util.realms, forms=forms, pets=pets)
+    return render_template('my_pet.html', realms=util.realms, forms=forms, pets=pets)
 
 @app.route('/pet_auction', methods=['GET', 'POST'])
 def pet_auction():
