@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, send_from_directory
 from mythic.config import MythicConfig
 from mythic.logger import logger
 from mythic.db import MythicDatabase
@@ -173,6 +173,10 @@ class WebUtil(BaseBot):
         return items
 
 util = WebUtil()
+
+@app.route('/')
+def index_page():
+    return send_from_directory(app.static_folder, 'index.html')
 
 @app.route('/form/init')
 def form_init():
