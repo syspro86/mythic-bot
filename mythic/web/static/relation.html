@@ -49,10 +49,6 @@ window['adrum-start-time'] = new Date().getTime();
 	<script src="js/angular-aria.min.js"></script>
 	<script src="js/angular-messages.min.js"></script>
 	<script src="js/angular-material.min.js"></script>
-	<script src="js/realms.js"></script>
-	<script src="js/dungeons.js"></script>
-	<script src="js/talents.js"></script>
-	<script src="js/specs.js"></script>
 	<script src="js/vis.min.js"></script>
 
 	<script>
@@ -65,19 +61,12 @@ window['adrum-start-time'] = new Date().getTime();
             $scope.server = ''
             $scope.servers = {}
             $scope.serverNames = []
-            $scope.dungeons = {}
-            $scope.dungeonNames = []
             $scope.minimumRun = 1
 
             $scope.players = new vis.DataSet([])
             $scope.relations = new vis.DataSet([])
             $scope.nextId = 1
 
-            $scope.servers = REALMS
-            for (var key in $scope.servers) {
-                $scope.serverNames.push($scope.servers[key])
-            }
-            
             $http({
                 method: 'GET',
                 url: 'form/realms',
@@ -89,11 +78,6 @@ window['adrum-start-time'] = new Date().getTime();
                 $scope.server = $scope.serverNames[0]
             }).catch(function () {
             })
-
-            $scope.dungeons = DUNGEONS
-            for (var key in $scope.dungeons) {
-                $scope.dungeonNames.push($scope.dungeons[key].name)
-            }
 
             var container = document.getElementById('relations')
             var data = {
