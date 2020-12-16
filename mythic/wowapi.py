@@ -40,7 +40,7 @@ class WowApi:
             return "zh_TW"
         return ""
 
-    def bn_request(self, url, token=False, namespace=None):
+    def bn_request(self, url, token=False, namespace=None, retry=True):
         if not url.startswith('http'):
             url = f"https://{self.region}.api.blizzard.com:443" + url
 
@@ -57,5 +57,12 @@ class WowApi:
         res = requests.get(url)
         if res.status_code == 200:
             return res.json()
+        elif res.status_code == 401:
+            logger.info('invalid token')
+            if retry:
+                self.access_token = self.get_token()
+                return self.bn_request(url, token=token, namespace=namespace, retry=False)
+            else:
+                return None
         else:
             return None
