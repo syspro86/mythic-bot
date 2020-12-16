@@ -13,8 +13,7 @@ class CollectIndexBot(BaseBot):
             self.telegram.send_message(text='index app start')
 
     def init(self):
-        realms = self.api.bn_request("/data/wow/realm/index", token=True, namespace="dynamic")
-        self.realms = realms['realms']
+        pass
 
     def update_pet_index(self):
         pets = self.api.bn_request(F"/data/wow/pet/index", token=True, namespace="static")
@@ -82,26 +81,6 @@ class CollectIndexBot(BaseBot):
             if changed:
                 mount['_id'] = _id
                 self.db.insert_mount(mount, upsert=True)
-
-    def update_player(self, realm, character_name):
-        player_id = {
-            'realm': realm,
-            'character_name': character_name
-        }
-        player = self.db.find_player(player_id)
-        if player is None:
-            player = {
-                '_id': player_id
-            }
-            self.db.insert_player(player)
-
-        pets = self.api.bn_request(f"/profile/wow/character/{realm}/{character_name}/collections/pets", token=True, namespace="profile")
-        if pets is not None and 'pets' in pets:
-            self.db.update_player(player, {'pets': pets['pets']})
-
-        mounts = self.api.bn_request(f"/profile/wow/character/{realm}/{character_name}/collections/mounts", token=True, namespace="profile")
-        if mounts is not None and 'mounts' in mounts:
-            self.db.update_player(player, {'mounts': mounts['mounts']})
 
     def on_schedule(self):
         try:
