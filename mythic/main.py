@@ -6,6 +6,7 @@ from mythic.bots.auction import CollectAuctionBot
 from mythic.bots.index import CollectIndexBot
 from mythic.bots.player import CollectPlayerBot
 from mythic.bots.telegram import TelegramBot
+from mythic.monitor.prom_exporter import MythicExporter
 
 if __name__ == '__main__':
     bot = 'mythic'
@@ -23,3 +24,5 @@ if __name__ == '__main__':
         BaseBot.start_cron()
     elif bot == 'web':
         subprocess.call(['gunicorn', 'mythic.web.app:app', '--timeout', '3600'])
+    elif bot == 'prom':
+        MythicExporter().start()

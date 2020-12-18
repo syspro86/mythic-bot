@@ -1,3 +1,6 @@
+appdynamics==20.10.0.2579
+appdynamics-bindeps-linux-x64==20.10.0
+appdynamics-proxysupport-linux-x64==1.8.0.252.1
 APScheduler==3.6.3
 astroid==2.4.2
 certifi==2020.6.20
@@ -17,6 +20,7 @@ Jinja2==2.11.2
 lazy-object-proxy==1.4.3
 MarkupSafe==1.1.1
 mccabe==0.6.1
+prometheus-client==0.9.0
 pycparser==2.20
 pylint==2.6.0
 pymongo==3.11.0
