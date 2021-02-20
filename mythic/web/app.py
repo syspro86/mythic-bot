@@ -48,12 +48,29 @@ class WebUtil(BaseBot):
             self.period_ids.append(period_id)
 
         self.current_period = periods['current_period']['id']
+        period_detail = self.api.bn_request(f"/data/wow/mythic-keystone/period/{self.current_period}", token=True, namespace="dynamic")
+        self.end_timestamp = int(period_detail['end_timestamp'])
 
         specs = self.api.bn_request('/data/wow/playable-specialization/index', token=True, namespace="static")
         for spec in specs['character_specializations']:
             spec_id = spec["id"]
             spec = self.api.bn_request(f'/data/wow/playable-specialization/{spec_id}', token=True, namespace="static")
             self.specs[spec_id] = spec
+
+    def get_current_period(self):
+        now_ts = int(datetime.now().timestamp() * 1000)
+        if self.end_timestamp < now_ts:
+            periods = self.api.bn_request("/data/wow/mythic-keystone/period/index", token=True, namespace="dynamic")
+            period_ids = []
+            for period in periods['periods']:
+                period_id = period['id']
+                period_ids.append(period_id)
+            self.period_ids = period_ids
+
+            self.current_period = periods['current_period']['id']
+            period_detail = self.api.bn_request(f"/data/wow/mythic-keystone/period/{self.current_period}", token=True, namespace="dynamic")
+            self.end_timestamp = int(period_detail['end_timestamp'])
+        return self.current_period
 
     def pets(self, realm, character_name):
         my_server = list(filter(lambda r: r['slug'] == realm, self.realms))
@@ -251,7 +268,7 @@ def char_weekly_realm_name(realm, name):
     records = util.db.aggregate('records', [
         { '$match': {
             'members': { '$elemMatch': { 'name': name, 'realm': realm } },
-            'period': util.current_period
+            'period': util.get_current_period()
         } }
     ])
 
