@@ -185,7 +185,7 @@ class MythicBot(BaseBot):
             self.need_init = True
             self.print_error(e)
 
-            self.telegram.send_message(text=str(e))
+            #self.telegram.send_message(text=str(e))
         except:
             self.need_init = True
             logger.info('unknown error')
