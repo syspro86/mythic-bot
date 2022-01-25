@@ -1,6 +1,7 @@
 import pymongo
 from mythic.logger import logger
 
+
 class MythicDatabase:
     def __init__(self, host, db):
         self.conn = pymongo.MongoClient(host)
@@ -22,7 +23,7 @@ class MythicDatabase:
             return []
 
         result = self.db.records.find({
-            'members': { '$elemMatch': { 'name': char_name, 'realm': realm } }
+            'members': {'$elemMatch': {'name': char_name, 'realm': realm}}
         }).sort([('completed_timestamp', pymongo.DESCENDING)]).limit(limit)
         return list(result)
 
@@ -31,10 +32,10 @@ class MythicDatabase:
             return []
 
         return list(map(lambda r: r['_id'], self.db.records.aggregate([
-            { '$match': { 'members.name': name } },
-            { '$unwind': '$members' },
-            { '$match': { 'members.name': name } },
-            { '$group': { '_id': '$members.realm' } },
+            {'$match': {'members.name': name}},
+            {'$unwind': '$members'},
+            {'$match': {'members.name': name}},
+            {'$group': {'_id': '$members.realm'}},
         ])))
 
     def save_botuser(self, user, upsert=False):
@@ -75,6 +76,15 @@ class MythicDatabase:
         except pymongo.errors.DuplicateKeyError:
             return False
 
+    def insert_auctions(self, records):
+        if self.db is None:
+            return
+
+        try:
+            self.db.auctions.insert_many(records, ordered=False)
+        except Exception as e:
+            logger.info(str(e))
+
     def update_auction(self, record, updates):
         if self.db is None:
             logger.info(record)
@@ -82,9 +92,17 @@ class MythicDatabase:
 
         self.db.auctions.update_one({
             '_id': record['_id']
-            },{
+        }, {
             '$set': updates
         }, upsert=False)
+
+    def update_auctions(self, keys, update_ts):
+        if self.db is None:
+            return
+
+        self.db.auctions.update_many(
+            {'_id': {'$in': keys}},
+            {'$set': {'last_seen_ts': update_ts}})
 
     def find_item(self, item_id):
         if self.db is None:
@@ -111,7 +129,7 @@ class MythicDatabase:
 
         self.db.items.update_one({
             '_id': record['_id']
-            },{
+        }, {
             '$set': updates
         }, upsert=False)
 
@@ -122,7 +140,8 @@ class MythicDatabase:
 
         try:
             if upsert:
-                self.db.pets.replace_one({'_id': record['_id']}, record, upsert=True)
+                self.db.pets.replace_one(
+                    {'_id': record['_id']}, record, upsert=True)
             else:
                 self.db.pets.insert_one(record)
             return True
@@ -143,7 +162,8 @@ class MythicDatabase:
 
         try:
             if upsert:
-                self.db.mounts.replace_one({'_id': record['_id']}, record, upsert=True)
+                self.db.mounts.replace_one(
+                    {'_id': record['_id']}, record, upsert=True)
             else:
                 self.db.mounts.insert_one(record)
             return True
@@ -164,7 +184,8 @@ class MythicDatabase:
 
         try:
             if upsert:
-                self.db.players.replace_one({'_id': record['_id']}, record, upsert=True)
+                self.db.players.replace_one(
+                    {'_id': record['_id']}, record, upsert=True)
             else:
                 self.db.players.insert_one(record)
             return True
@@ -178,7 +199,7 @@ class MythicDatabase:
 
         self.db.players.update_one({
             '_id': record['_id']
-            },{
+        }, {
             '$set': updates
         }, upsert=False)
 
@@ -196,11 +217,11 @@ class MythicDatabase:
         col = getattr(self.db, collection)
         aggr = []
         if match is not None:
-            aggr.append({ '$match': match })
+            aggr.append({'$match': match})
         if limit is not None:
-            aggr.append({ '$limit': limit })
+            aggr.append({'$limit': limit})
         if project is not None:
-            aggr.append({ '$project': project })
+            aggr.append({'$project': project})
 
         return list(col.aggregate(aggr))
 
@@ -210,17 +231,3 @@ class MythicDatabase:
 
         col = getattr(self.db, collection)
         return list(col.aggregate(aggr))
-
-    def insert_many(self, collection, data, **kwargs):
-        if self.db is None:
-            return
-
-        col = getattr(self.db, collection)
-        col.insert_many(data, **kwargs)
-
-    def update_many(self, collection, filter, update, **kwargs):
-        if self.db is None:
-            return
-
-        col = getattr(self.db, collection)
-        col.update_many(filter, update, **kwargs)

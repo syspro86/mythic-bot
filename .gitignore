@@ -127,3 +127,7 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# mythic app
+instantclient_21_5/
+instantclient-basic*.zip
