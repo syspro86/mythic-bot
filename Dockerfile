@@ -7,7 +7,6 @@ RUN pip install --upgrade pip
 RUN pip install -r requirements.txt
 
 COPY mythic /app/mythic
-COPY mythic.yml /app/
 COPY startup.sh /app/
 RUN chmod +x /app/startup.sh
 
