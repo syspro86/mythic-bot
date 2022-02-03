@@ -22,7 +22,7 @@ class BaseBot(object):
         if BaseBot._api_ is None:
             BaseBot._api_ = WowApi(
                 BaseBot._region_, config.BATTLENET_API_ID, config.BATTLENET_API_SECRET)
-        if BaseBot._db_ is None:
+        if True:  # BaseBot._db_ is None:
             if config.DB_TYPE == 'oracle':
                 BaseBot._db_ = MythicDatabaseOracle(
                     config.ORACLE_DSN, config.ORACLE_USER, config.ORACLE_PASSWORD, config.ORACLE_CLIENT_PATH)
