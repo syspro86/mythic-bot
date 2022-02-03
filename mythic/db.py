@@ -1,11 +1,19 @@
+from typing import final
 import pymongo
 from mythic.logger import logger
 
 
 class MythicDatabase:
     def __init__(self, host, db):
-        self.conn = pymongo.MongoClient(host)
-        self.db = self.conn[db]
+        self._host = host
+        self._db = db
+
+    def connect(self):
+        self.conn = pymongo.MongoClient(self._host)
+        self.db = self.conn[self._db]
+
+    def disconnect(self):
+        self.db = None
 
     def insert_record(self, record):
         if self.db is None:

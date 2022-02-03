@@ -177,6 +177,8 @@ class MythicBot(BaseBot):
 
     def on_schedule(self):
         try:
+            self.db.connect()
+
             now_ts = int(datetime.now().timestamp() * 1000)
             if self.end_timestamp < now_ts:
                 self.need_init = True
@@ -206,6 +208,9 @@ class MythicBot(BaseBot):
             logger.info('unknown error')
             self.telegram.send_message(text='unknown error')
             raise
+
+        finally:
+            self.db.disconnect()
 
 
 if __name__ == '__main__':

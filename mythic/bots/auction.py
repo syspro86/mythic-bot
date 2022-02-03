@@ -72,6 +72,8 @@ class CollectAuctionBot(BaseBot):
 
     def on_schedule(self):
         try:
+            self.db.connect()
+
             now_ts = int(datetime.now().timestamp() * 1000)
 
             for cr in self.connected_realms:
@@ -81,6 +83,8 @@ class CollectAuctionBot(BaseBot):
             logger.info(f'collected in {now_ts2 - now_ts} ms')
         except Exception as e:
             self.print_error(e)
+        finally:
+            self.db.disconnect()
 
 
 if __name__ == '__main__':

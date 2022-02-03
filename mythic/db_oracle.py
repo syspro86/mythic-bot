@@ -8,9 +8,21 @@ class MythicDatabase:
     # https://cx-oracle.readthedocs.io/en/latest/user_guide/batch_statement.html
     def __init__(self, dsn, user, password, client_path):
         cx_Oracle.init_oracle_client(lib_dir=client_path)
+        self._dsn = dsn
+        self._user = user
+        self._password = password
+
+    def connect(self):
         self.conn = cx_Oracle.connect(
-            user=user, password=password, dsn=dsn, encoding='UTF-8')
+            user=self._user, password=self._password, dsn=self._dsn, encoding='UTF-8')
         self.conn.autocommit = False
+
+    def disconnect(self):
+        if self.conn is not None:
+            try:
+                self.conn.close()
+            finally:
+                self.conn = None
 
     def insert_record(self, record):
         if self.conn is None:
@@ -32,6 +44,7 @@ class MythicDatabase:
 
             self.conn.commit()
         except:
+            traceback.print_exc()
             self.conn.rollback()
         finally:
             cur.close()
