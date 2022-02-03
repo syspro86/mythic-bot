@@ -5,9 +5,13 @@ from mythic.logger import logger
 
 
 class MythicDatabase:
+    _inited_ = False
     # https://cx-oracle.readthedocs.io/en/latest/user_guide/batch_statement.html
+
     def __init__(self, dsn, user, password, client_path):
-        cx_Oracle.init_oracle_client(lib_dir=client_path)
+        if not MythicDatabase._inited_:
+            cx_Oracle.init_oracle_client(lib_dir=client_path)
+            MythicDatabase._inited_ = True
         self._dsn = dsn
         self._user = user
         self._password = password
@@ -43,6 +47,8 @@ class MythicDatabase:
                 "insert into mythic_record_player(record_id, player_realm, player_name) values (:1, :2, :3)", players)
 
             self.conn.commit()
+        except cx_Oracle.IntegrityError:
+            self.conn.rollback()
         except:
             traceback.print_exc()
             self.conn.rollback()
