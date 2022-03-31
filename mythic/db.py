@@ -239,3 +239,28 @@ class MythicDatabase:
 
         col = getattr(self.db, collection)
         return list(col.aggregate(aggr))
+
+    def get_weekly_record(self, name, realm, period):
+        if self.db is None:
+            return []
+
+        records = self.db.records.aggregate([
+            {'$match': {
+                'members': {'$elemMatch': {'name': name, 'realm': realm}},
+                'period': period
+            }}
+        ])
+        return records
+
+    def get_character_records(self, name, realm, count):
+        if self.db is None:
+            return []
+
+        records = self.db.records.aggregate([
+            {'$match': {
+                'members': {'$elemMatch': {'name': name, 'realm': realm}}
+            }},
+            {'$sort': {'completed_timestamp': -1}},
+            {'$limit': count}
+        ])
+        return records

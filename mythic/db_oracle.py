@@ -163,7 +163,8 @@ class MythicDatabase:
             return [{
                 '_id': rows[0][0],
                 'webSessionId': rows[0][1],
-                'characters': list(map(lambda r: f"{r[3]}-{r[2]}", rows))
+                'characters': list(map(lambda r: f"{r[3]}-{r[2]}", rows)),
+                'userComments': []
             }]
 
         finally:
@@ -290,3 +291,63 @@ class MythicDatabase:
 
     def aggregate(self, collection, aggr):
         return None
+
+    def get_weekly_record(self, name, realm, period):
+        if self.conn is None:
+            return []
+
+        try:
+            cur = self.conn.cursor()
+            cur.execute("""
+                SELECT mr.JSON_TEXT
+                  FROM MYTHIC_RECORD mr, MYTHIC_RECORD_PLAYER mrp
+                 WHERE mr.RECORD_ID = mrp.RECORD_ID 
+                   AND mrp.PLAYER_REALM = :1
+                   AND mrp.PLAYER_NAME = :2
+                   AND json_value(mr.JSON_TEXT, '$.period') = :3
+            """, [realm, name, period])
+
+            rows = cur.fetchall()
+            if not rows:
+                return []
+
+            return list(map(lambda r: json.loads(str(r[0])), rows))
+
+        except Exception as e:
+            logger.info(str(e))
+            traceback.print_exc()
+        finally:
+            cur.close()
+
+        return []
+
+    def get_character_records(self, name: str, realm: str, count: int):
+        if self.conn is None:
+            return []
+
+        try:
+            cur = self.conn.cursor()
+            cur.execute("""
+                SELECT * FROM (
+                SELECT mr.JSON_TEXT
+                  FROM MYTHIC_RECORD mr, MYTHIC_RECORD_PLAYER mrp
+                 WHERE mr.RECORD_ID = mrp.RECORD_ID 
+                   AND mrp.PLAYER_REALM = :1
+                   AND mrp.PLAYER_NAME = :2
+                 ORDER BY mr.RECORD_ID DESC
+                ) T WHERE ROWNUM <= :3
+            """, [realm, name, count])
+
+            rows = cur.fetchall()
+            if not rows:
+                return []
+
+            return list(map(lambda r: json.loads(str(r[0])), rows))
+
+        except Exception as e:
+            logger.info(str(e))
+            traceback.print_exc()
+        finally:
+            cur.close()
+
+        return []
