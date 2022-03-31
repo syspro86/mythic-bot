@@ -10,6 +10,7 @@ import json
 import requests
 import textwrap
 
+
 class TelegramBot(BaseBot):
     def __init__(self):
         super().__init__()
@@ -25,72 +26,82 @@ class TelegramBot(BaseBot):
 
     def init_api(self, force):
 
-        dungeons = self.api.bn_request("/data/wow/mythic-keystone/dungeon/index", token=True, namespace="dynamic")
+        dungeons = self.api.bn_request(
+            "/data/wow/mythic-keystone/dungeon/index", token=True, namespace="dynamic")
         self.dungeon_cache = {}
         for dungeon in dungeons['dungeons']:
             dungeon_id = dungeon['id']
-            d = self.api.bn_request(f"/data/wow/mythic-keystone/dungeon/{dungeon_id}", token=True, namespace="dynamic")
+            d = self.api.bn_request(
+                f"/data/wow/mythic-keystone/dungeon/{dungeon_id}", token=True, namespace="dynamic")
             self.dungeon_cache[dungeon_id] = d
 
         self.need_init = False
 
     def on_telegram_message(self, chat_id, message):
-        if message == '/me':
-            self.on_telegram_message_me(chat_id)
+        try:
+            self.db.connect()
+            if message == '/me':
+                self.on_telegram_message_me(chat_id)
 
-        elif message == "/주차" or message == "/report":
-            users = self.db.find_botusers(chat_id=chat_id)
-
-        elif message.startswith("/add ") or message.startswith("/추가 "):
-            char_name = str(message).split(' ', 2)[1]
-            if len(char_name) > 0:
-                char_name = char_name[0:1].upper() + char_name[1:].lower()
+            elif message == "/주차" or message == "/report":
                 users = self.db.find_botusers(chat_id=chat_id)
-                if len(users) > 0:
-                    user = users[0]
-                    if 'characters' not in user:
-                        user['characters'] = []
-                    if char_name not in user['characters']:
-                        user['characters'].append(char_name)
-                        self.db.save_botuser(user)
-                        self.telegram.send_message(chat_id=chat_id, text=f'{char_name} 추가되었습니다.')
-                else:
-                    user = {
-                        '_id': str(chat_id),
-                        'characters': [ char_name ]
-                    }
-                    self.db.save_botuser(user, upsert=True)
-                    self.telegram.send_message(chat_id=chat_id, text=f'{char_name} 추가되었습니다.')
 
-        elif message.startswith("/remove ") or message.startswith("/삭제 "):
-            char_name = str(message).split(' ', 2)[1]
-            if len(char_name) > 0:
-                char_name = char_name[0:1].upper() + char_name[1:].lower()
-                users = self.db.find_botusers(chat_id=chat_id)
-                if len(users) > 0:
-                    user = users[0]
-                    if 'characters' in user and char_name in user['characters']:
-                        user['characters'].remove(char_name)
-                        self.db.save_botuser(user)
-                        self.telegram.send_message(chat_id=chat_id, text=f'{char_name} 삭제되었습니다.')
+            elif message.startswith("/add ") or message.startswith("/추가 "):
+                char_name = str(message).split(' ', 2)[1]
+                if len(char_name) > 0:
+                    char_name = char_name[0:1].upper() + char_name[1:].lower()
+                    users = self.db.find_botusers(chat_id=chat_id)
+                    if len(users) > 0:
+                        user = users[0]
+                        if 'characters' not in user:
+                            user['characters'] = []
+                        if char_name not in user['characters']:
+                            user['characters'].append(char_name)
+                            self.db.save_botuser(user)
+                            self.telegram.send_message(
+                                chat_id=chat_id, text=f'{char_name} 추가되었습니다.')
+                    else:
+                        user = {
+                            '_id': str(chat_id),
+                            'characters': [char_name]
+                        }
+                        self.db.save_botuser(user, upsert=True)
+                        self.telegram.send_message(
+                            chat_id=chat_id, text=f'{char_name} 추가되었습니다.')
 
-        else:
-            char_name = message.strip()
-            if len(char_name) > 0:
-                self.on_telegram_message_find(chat_id, char_name)
+            elif message.startswith("/remove ") or message.startswith("/삭제 "):
+                char_name = str(message).split(' ', 2)[1]
+                if len(char_name) > 0:
+                    char_name = char_name[0:1].upper() + char_name[1:].lower()
+                    users = self.db.find_botusers(chat_id=chat_id)
+                    if len(users) > 0:
+                        user = users[0]
+                        if 'characters' in user and char_name in user['characters']:
+                            user['characters'].remove(char_name)
+                            self.db.save_botuser(user)
+                            self.telegram.send_message(
+                                chat_id=chat_id, text=f'{char_name} 삭제되었습니다.')
+
+            else:
+                char_name = message.strip()
+                if len(char_name) > 0:
+                    self.on_telegram_message_find(chat_id, char_name)
+        finally:
+            self.db.disconnect()
 
     def on_telegram_message_me(self, chat_id):
         users = self.db.find_botusers(chat_id=chat_id)
         user = None
         if len(users) == 0:
-            user = { '_id': str(chat_id), 'characters': [] }
+            user = {'_id': str(chat_id), 'characters': []}
             self.db.save_botuser(user, upsert=True)
         else:
             user = users[0]
 
-        self.telegram.send_message(chat_id=chat_id, text=json.dumps(user['characters'], ensure_ascii=False))
-        
-        if 'webSessionId' not in user:
+        self.telegram.send_message(chat_id=chat_id, text=json.dumps(
+            user['characters'], ensure_ascii=False))
+
+        if 'webSessionId' not in user or user['webSessionId'].strip() == '':
             sid = f'{config.HASH_SALT_PREFIX}{chat_id}{config.HASH_SALT_SUFFIX}'
 
             m = hashlib.new('sha256')
@@ -102,7 +113,8 @@ class TelegramBot(BaseBot):
             user['webSessionId'] = sid
             self.db.save_botuser(user)
 
-        self.telegram.send_message(chat_id=chat_id, text=f"{config.WEL_UI_URL}{user['webSessionId']}")
+        self.telegram.send_message(
+            chat_id=chat_id, text=f"{config.WEL_UI_URL}{user['webSessionId']}")
 
     def on_telegram_message_find(self, chat_id, char_name):
         realms = []
@@ -115,15 +127,18 @@ class TelegramBot(BaseBot):
             realms = self.db.find_characters(char_name)
 
         if len(realms) == 0:
-            self.telegram.send_message(chat_id=chat_id, text=f'{char_name} 캐릭터가 없습니다.')
+            self.telegram.send_message(
+                chat_id=chat_id, text=f'{char_name} 캐릭터가 없습니다.')
 
         else:
             for realm in realms:
-                records = list(self.db.find_records(char_name, realm, limit=10))
+                records = list(self.db.find_records(
+                    char_name, realm, limit=10))
 
                 if len(records) == 0:
-                    self.telegram.send_message(chat_id=chat_id, text=f'{char_name}-{realm} 쐐기 데이터가 없습니다.')
-                
+                    self.telegram.send_message(
+                        chat_id=chat_id, text=f'{char_name}-{realm} 쐐기 데이터가 없습니다.')
+
                 else:
                     msg = ''
                     for record in records:
@@ -136,11 +151,13 @@ class TelegramBot(BaseBot):
                             record_msg += textwrap.dedent(f"""
                             {member['name']}-{member['realm']} ({member['specName']} {member['className']})
                             """)
-                        msg += record_msg.replace('\n\n', '\n').strip() + "\n\n"
+                        msg += record_msg.replace('\n\n',
+                                                  '\n').strip() + "\n\n"
                     self.telegram.send_message(chat_id=chat_id, text=msg)
 
     def on_schedule(self):
         pass
+
 
 if __name__ == '__main__':
     TelegramBot().on_schedule()

@@ -110,23 +110,64 @@ class MythicDatabase:
                 when not matched then
                     insert (user_id, web_session_id)
                     values (:1, :2)
-            """, user['_id'], user['webSessionId'])
+            """, [user['_id'], (user['webSessionId'] if 'webSessionId' in user else ' ')])
 
             cur.execute(
-                "delete from mythic_botuser_player where user_id = :1", user['_id'])
+                "delete from mythic_botuser_player where user_id = :1", [user['_id']])
 
-            # cur.executemany("insert into mythic_botuser_player (user_id, player_realm, player_name) values (:1, :2, :3)", )
+            for char in user['characters']:
+                rn = char.split('-')
+                if len(rn) == 2:
+                    cur.execute(
+                        "insert into mythic_botuser_player (user_id, player_realm, player_name) values (:1, :2, :3)", [user['_id'], rn[1], rn[0]])
 
-            cur.execute(
-                "delete from mythic_botuser_comment where user_id = :1", user['_id'])
+            # cur.execute("delete from mythic_botuser_comment where user_id = :1", user['_id'])
 
             self.conn.commit()
-        except:
+        except Exception as e:
             self.conn.rollback()
+            logger.info(str(e))
+            traceback.print_exc()
         finally:
             cur.close()
 
     def find_botusers(self, char_name=None, chat_id=None, session=None):
+        try:
+            cur = self.conn.cursor()
+            if chat_id is not None:
+                cur.execute("""
+                    SELECT mb.USER_ID, mb.WEB_SESSION_ID, mbp.PLAYER_REALM, mbp.PLAYER_NAME
+                      FROM MYTHIC_BOTUSER mb, MYTHIC_BOTUSER_PLAYER mbp
+                     WHERE mb.USER_ID = mbp.USER_ID
+                       AND mb.USER_ID = :1
+                """, [chat_id])
+            elif session is not None:
+                cur.execute("""
+                    SELECT mb.USER_ID, mb.WEB_SESSION_ID, mbp.PLAYER_REALM, mbp.PLAYER_NAME
+                      FROM MYTHIC_BOTUSER mb, MYTHIC_BOTUSER_PLAYER mbp
+                     WHERE mb.USER_ID = mbp.USER_ID
+                       AND mb.WEB_SESSION_ID = :1
+                """, [session])
+            else:
+                cur.execute("""
+                    SELECT mb.USER_ID, mb.WEB_SESSION_ID, mbp.PLAYER_REALM, mbp.PLAYER_NAME
+                      FROM MYTHIC_BOTUSER mb, MYTHIC_BOTUSER_PLAYER mbp
+                     WHERE mb.USER_ID = mbp.USER_ID
+                       AND mbp.PLAYER_NAME = :1
+                """, [char_name])
+
+            rows = cur.fetchall()
+            if not rows:
+                return []
+
+            return [{
+                '_id': rows[0][0],
+                'webSessionId': rows[0][1],
+                'characters': list(map(lambda r: f"{r[3]}-{r[2]}", rows))
+            }]
+
+        finally:
+            cur.close()
         return []
 
     def find_auction(self, auction_id):
@@ -163,10 +204,11 @@ class MythicDatabase:
         try:
             cur = self.conn.cursor()
             cur.execute(f"""
-                update mythic_auction 
+                update mythic_auction
                 set last_seen_ts = :1
                 where auction_id in (
-                    {','.join([(':' + str(idx+2)) for idx in range(len(keys))])}
+                    {','.join([(':' + str(idx+2))
+                              for idx in range(len(keys))])}
                 )
             """, [update_ts]+keys)
             self.conn.commit()
