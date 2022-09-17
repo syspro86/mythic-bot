@@ -15,7 +15,7 @@ if __name__ == '__main__':
 
     if bot == 'collect':
         MythicBot().cron(minute='*/10')
-        CollectAuctionBot().cron(minute='*/10')
+        # CollectAuctionBot().cron(minute='*/10')
         # CollectIndexBot().cron(hour='0')
         # CollectPlayerBot().cron(hour='*')
         BaseBot.start_cron()
