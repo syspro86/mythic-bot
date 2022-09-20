@@ -18,7 +18,7 @@
 | ORACLE_CLIENT_PATH   | oracle client 설치 경로        |
 | TELEGRAM_TOKEN       |                                |
 | ADMIN_CHAT_ID        | telegram 관리자 chat id        |
-| WEL_UI_URL           |                                |
+| WEB_UI_URL           |                                |
 | HASH_SALT_PREFIX     |                                |
 | HASH_SALT_SUFFIX     |                                |
 | LD_LIBRARY_PATH      | ORACLE_CLIENT_PATH와 동일 경로 |

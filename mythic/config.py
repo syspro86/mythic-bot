@@ -21,7 +21,7 @@ class MythicConfig:
         self.ORACLE_CLIENT_PATH = nvl('ORACLE_CLIENT_PATH')
         self.TELEGRAM_TOKEN = nvl('TELEGRAM_TOKEN')
         self.ADMIN_CHAT_ID = nvl('ADMIN_CHAT_ID')
-        self.WEL_UI_URL = nvl('WEL_UI_URL')
+        self.WEB_UI_URL = nvl('WEB_UI_URL')
         self.HASH_SALT_PREFIX = nvl('HASH_SALT_PREFIX')
         self.HASH_SALT_SUFFIX = nvl('HASH_SALT_SUFFIX')
 

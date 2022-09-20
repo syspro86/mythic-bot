@@ -114,7 +114,7 @@ class TelegramBot(BaseBot):
             self.db.save_botuser(user)
 
         self.telegram.send_message(
-            chat_id=chat_id, text=f"{config.WEL_UI_URL}{user['webSessionId']}")
+            chat_id=chat_id, text=f"{config.WEB_UI_URL}{user['webSessionId']}")
 
     def on_telegram_message_find(self, chat_id, char_name):
         realms = []
