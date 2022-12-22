@@ -86,14 +86,15 @@ class MythicDatabase:
                 select distinct player_realm from mythic_record_player
                 where player_name = :name
             """, name=name)
+
+            rows = cur.fetchall()
+            if not rows:
+                return []
+
+            return list(rows)
         finally:
             cur.close()
 
-        rows = cur.fetchall()
-        if not rows:
-            return []
-
-        return list(rows)
 
     def save_botuser(self, user, upsert=False):
         if self.conn is None:
