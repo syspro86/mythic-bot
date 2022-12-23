@@ -66,17 +66,16 @@ class MythicDatabase:
             cur.execute("""
                 select r.json_text from mythic_record r, MYTHIC_RECORD_player p
                 where r.record_id = p.record_id
-                and p.player_realm = :realm
-                and p.player_name = :name
-            """, realm=realm, name=char_name)
+                and p.player_realm = :1
+                and p.player_name = :2
+            """, [realm, char_name])
 
             rows = cur.fetchmany(limit)
             if not rows:
                 return []
+            return list(rows)
         finally:
             cur.close()
-
-        return list(rows)
 
     def find_characters(self, name):
         if self.conn is None:
