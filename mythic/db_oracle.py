@@ -152,12 +152,21 @@ class MythicDatabase:
                        AND mb.WEB_SESSION_ID = :1
                 """, [session])
             else:
-                cur.execute("""
-                    SELECT mb.USER_ID, mb.WEB_SESSION_ID, mbp.PLAYER_REALM, mbp.PLAYER_NAME
-                      FROM MYTHIC_BOTUSER mb, MYTHIC_BOTUSER_PLAYER mbp
-                     WHERE mb.USER_ID = mbp.USER_ID
-                       AND mbp.PLAYER_NAME = :1
-                """, [char_name])
+                if char_name.find('-') >= 0:
+                    cur.execute("""
+                        SELECT mb.USER_ID, mb.WEB_SESSION_ID, mbp.PLAYER_REALM, mbp.PLAYER_NAME
+                        FROM MYTHIC_BOTUSER mb, MYTHIC_BOTUSER_PLAYER mbp
+                        WHERE mb.USER_ID = mbp.USER_ID
+                        AND mbp.PLAYER_NAME = :1
+                        AND mbp.PLAYER_REALM = :2
+                    """, char_name.split('-')[0:2])
+                else:
+                    cur.execute("""
+                        SELECT mb.USER_ID, mb.WEB_SESSION_ID, mbp.PLAYER_REALM, mbp.PLAYER_NAME
+                        FROM MYTHIC_BOTUSER mb, MYTHIC_BOTUSER_PLAYER mbp
+                        WHERE mb.USER_ID = mbp.USER_ID
+                        AND mbp.PLAYER_NAME = :1
+                    """, [char_name])
 
             rows = cur.fetchall()
             if not rows:
