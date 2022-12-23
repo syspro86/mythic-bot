@@ -31,7 +31,7 @@ class MythicDatabase:
     def insert_record(self, record):
         if self.conn is None:
             logger.info(record)
-            return True
+            return False
 
         cur = self.conn.cursor()
         rows = [(record['_id'], json.dumps(record))]
@@ -47,6 +47,7 @@ class MythicDatabase:
                 "insert into mythic_record_player(record_id, player_realm, player_name) values (:1, :2, :3)", players)
 
             self.conn.commit()
+            return True
         except cx_Oracle.IntegrityError:
             self.conn.rollback()
         except:
@@ -54,6 +55,7 @@ class MythicDatabase:
             self.conn.rollback()
         finally:
             cur.close()
+        return False
 
     def find_records(self, char_name, realm, limit=10):
         if self.conn is None:
