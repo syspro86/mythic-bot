@@ -37,6 +37,11 @@ class TelegramBot(BaseBot):
 
         self.need_init = False
 
+    def dungeon_name(self, dungeon_id):
+        if dungeon_id not in self.dungeon_cache:
+            return '이름모를던전'
+        return dungeon_cache[dungeon_id]['name']
+
     def on_telegram_message(self, chat_id, message):
         try:
             self.db.connect()
@@ -144,7 +149,7 @@ class TelegramBot(BaseBot):
                     for record in records:
                         record_msg = ''
                         record_msg += textwrap.dedent(f"""
-                        {self.dungeon_cache[record['dungeon_id']]['name']}+{record['keystone_level']} ({datetime.fromtimestamp(record['completed_timestamp'] / 1000).strftime('%Y-%m-%d %H:%M')})
+                        {self.dungeon_name(record['dungeon_id'])}+{record['keystone_level']} ({datetime.fromtimestamp(record['completed_timestamp'] / 1000).strftime('%Y-%m-%d %H:%M')})
                         ({record['keystone_upgrade']}) {int(record['duration'] / 60000)}분 {int((record['duration'] / 1000) % 60)}초
                         """)
                         for member in record['members']:
