@@ -73,7 +73,7 @@ class MythicDatabase:
             rows = cur.fetchmany(limit)
             if not rows:
                 return []
-            return list(map(lambda r: json.loads(r[0]), rows))
+            return list(map(lambda r: json.loads(str(r[0])), rows))
         finally:
             cur.close()
 
