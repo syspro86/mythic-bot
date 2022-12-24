@@ -40,7 +40,7 @@ class TelegramBot(BaseBot):
     def dungeon_name(self, dungeon_id):
         if dungeon_id not in self.dungeon_cache:
             return '이름모를던전'
-        return dungeon_cache[dungeon_id]['name']
+        return self.dungeon_cache[dungeon_id]['name']
 
     def on_telegram_message(self, chat_id, message):
         try:
