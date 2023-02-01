@@ -2,6 +2,7 @@ from mythic.logger import logger
 
 import base64
 import requests
+from ratelimit import limits, sleep_and_retry
 
 
 class WowApi:
@@ -43,6 +44,8 @@ class WowApi:
             return "zh_TW"
         return ""
 
+    @sleep_and_retry
+    @limits(calls=600, period=1)
     def bn_request(self, url, token=False, namespace=None, retry=10):
         if not url.startswith('http'):
             url = f"https://{self.region}.api.blizzard.com:443" + url
