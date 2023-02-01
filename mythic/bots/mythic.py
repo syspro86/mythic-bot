@@ -169,7 +169,7 @@ class MythicBot(BaseBot):
                                 chat_id=buser['_id'], text=msg)
                             sent_botusers.append(buser['_id'])
                             # self.bot.send_message(text=msg)
-                            logger.info(f"message sent! {buser['id']} {msg}")
+                            logger.info(f"message sent! {buser['_id']} {msg}")
 
             self.inserted_id_set.append(record_id)
         except Exception as e:
