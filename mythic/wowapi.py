@@ -70,9 +70,9 @@ class WowApi:
                     self.access_token = self.get_token()
                     return self.bn_request(url, token=token, namespace=namespace, retry=retry-1)
                 else:
-                    return None
+                    return res.status_code
             else:
-                return None
+                return res.status_code
         except requests.exceptions.Timeout:
             logger.info(f'timeout! retry={retry}')
             if retry > 0:

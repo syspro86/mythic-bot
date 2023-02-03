@@ -75,8 +75,8 @@ class MythicBot(BaseBot):
     def get_leaderboard(self, realm_id, dungeon_id, season, period):
         board = self.api.bn_request(
             f"/data/wow/connected-realm/{realm_id}/mythic-leaderboard/{dungeon_id}/period/{period}", token=True, namespace="dynamic")
-        if board is None or 'leading_groups' not in board:
-            logger.info(f"leaderboard for {dungeon_id}, {realm_id} is empty")
+        if type(board) is not dict or 'leading_groups' not in board:
+            logger.info(f"leaderboard for {dungeon_id}, {realm_id} is empty. {board}")
             return
 
         for rec in board['leading_groups']:
