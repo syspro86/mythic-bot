@@ -75,9 +75,12 @@ class MythicBot(BaseBot):
     def get_leaderboard(self, realm_id, dungeon_id, season, period):
         board = self.api.bn_request(
             f"/data/wow/connected-realm/{realm_id}/mythic-leaderboard/{dungeon_id}/period/{period}", token=True, namespace="dynamic")
-        if board is not None and 'leading_groups' in board:
-            for rec in board['leading_groups']:
-                self.insert_record(board, rec, season, dungeon_id)
+        if board is None or 'leading_groups' not in board:
+            logger.info(f"leaderboard for {dungeon_id}, {realm_id} is empty")
+            return
+
+        for rec in board['leading_groups']:
+            self.insert_record(board, rec, season, dungeon_id)
 
     def insert_record(self, board, rec, season, dungeon_id):
         record = {}
@@ -192,6 +195,7 @@ class MythicBot(BaseBot):
                     return
 
             for did in self.dungeon_cache.keys():
+                logger.info(f"{self.dungeon_cache[did]['name']} ({did})")
                 for rid in self.realm_cache.keys():
                     self.get_leaderboard(
                         rid, did, self.current_season, self.current_period)

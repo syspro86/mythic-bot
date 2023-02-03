@@ -59,7 +59,7 @@ class WowApi:
             url += f"&namespace={namespace}-{self.region}"
             url += f"&locale={self.locale()}"
 
-        logger.info(url)
+        # logger.info(url)
         try:
             res = requests.get(url, timeout=5)
             if res.status_code == 200:
