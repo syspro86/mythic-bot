@@ -313,7 +313,7 @@ class MythicDatabase:
                  WHERE mr.RECORD_ID = mrp.RECORD_ID 
                    AND mrp.PLAYER_REALM = %s
                    AND mrp.PLAYER_NAME = %s
-                   AND json_value(mr.JSON_TEXT, '$.period') = %s
+                   AND cast(mr.JSON_TEXT::json->>'period' as numeric) = %s
             """, [realm, name, period])
 
             rows = cur.fetchall()
