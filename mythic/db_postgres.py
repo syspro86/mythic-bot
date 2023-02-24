@@ -140,7 +140,7 @@ class MythicDatabase:
                       FROM MYTHIC_BOTUSER mb, MYTHIC_BOTUSER_PLAYER mbp
                      WHERE mb.USER_ID = mbp.USER_ID
                        AND mb.USER_ID = %s
-                """, [chat_id])
+                """, [str(chat_id)])
             elif session is not None:
                 cur.execute("""
                     SELECT mb.USER_ID, mb.WEB_SESSION_ID, mbp.PLAYER_REALM, mbp.PLAYER_NAME
