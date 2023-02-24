@@ -6,6 +6,7 @@ from mythic.logger import logger
 from mythic.wowapi import WowApi
 from mythic.db import MythicDatabase as MythicDatabaseMongo
 from mythic.db_oracle import MythicDatabase as MythicDatabaseOracle
+from mythic.db_postgres import MythicDatabase as MythicDatabasePostgres
 from mythic.telegram import TelegramBot
 
 
@@ -26,6 +27,9 @@ class BaseBot(object):
             if config.DB_TYPE == 'oracle':
                 BaseBot._db_ = MythicDatabaseOracle(
                     config.ORACLE_DSN, config.ORACLE_USER, config.ORACLE_PASSWORD, config.ORACLE_CLIENT_PATH)
+            elif config.DB_TYPE == 'postgres':
+                BaseBot._db_ = MythicDatabasePostgres(
+                    config.POSTGRES_HOST, config.POSTGRES_PORT, config.POSTGRES_DBNAME, config.POSTGRES_USER, config.POSTGRES_PASSWORD)
             elif config.DB_TYPE == 'mongo':
                 BaseBot._db_ = MythicDatabaseMongo(
                     config.MONGO_HOST, config.MONGO_DATABASE)

@@ -13,7 +13,9 @@ if __name__ == '__main__':
     if len(sys.argv) >= 2:
         bot = sys.argv[1]
 
-    if bot == 'collect':
+    if bot == 'test':
+        MythicBot().on_schedule()
+    elif bot == 'collect':
         MythicBot().cron(minute='*/10')
         # CollectAuctionBot().cron(minute='*/10')
         # CollectIndexBot().cron(hour='0')
