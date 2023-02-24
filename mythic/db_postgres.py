@@ -82,7 +82,7 @@ class MythicDatabase:
             cur.execute("""
                 select distinct player_realm from mythic_record_player
                 where player_name = %s
-            """, (name))
+            """, [name])
 
             rows = cur.fetchall()
             if not rows:
