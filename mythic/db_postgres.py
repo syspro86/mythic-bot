@@ -344,7 +344,7 @@ class MythicDatabase:
                    AND mrp.PLAYER_REALM = %s
                    AND mrp.PLAYER_NAME = %s
                  ORDER BY mr.RECORD_ID DESC
-                ) T WHERE ROWNUM <= %s
+                ) T LIMIT %s
             """, [realm, name, count])
 
             rows = cur.fetchall()
