@@ -2,6 +2,7 @@ import psycopg2
 import json
 import traceback
 from mythic.logger import logger
+import copy
 
 
 class MythicDatabase:
@@ -30,12 +31,13 @@ class MythicDatabase:
             return False
 
         cur = self.conn.cursor()
-        rows = [(record['_id'], json.dumps(record))]
+        record = copy.deepcopy(record)
 
         players = list(
             map(lambda m: (record['_id'], m['realm'], m['name'], m['spec'], m['className'], m['specName'], m['role']), record['members']))
         
         del record['members']
+        rows = [(record['_id'], json.dumps(record))]
 
         try:
             cur.executemany(
