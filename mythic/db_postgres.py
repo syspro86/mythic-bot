@@ -42,7 +42,7 @@ class MythicDatabase:
                 "insert into public.mythic_record(record_id, json_text) values (%s, %s)", rows)
 
             cur.executemany(
-                "insert into mythic_record_player(record_id, player_realm, player_name, spec, class_name, spec_name, role_name) values (%s, %s, %s, %s, %s, %s, %s)", players)
+                "insert into mythic_record_player(record_id, player_realm, player_name, spec_id, class_name, spec_name, role_name) values (%s, %s, %s, %s, %s, %s, %s)", players)
 
             self.conn.commit()
             return True
