@@ -131,3 +131,4 @@ dmypy.json
 # mythic app
 instantclient_21_5/
 instantclient-basic*.zip
+.vscode/launch.json
