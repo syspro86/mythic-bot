@@ -264,3 +264,18 @@ class MythicDatabase:
             {'$limit': count}
         ])
         return records
+    
+    def get_relation(self, name, realm):
+        records = self.aggregate('records', [
+            {'$match': {
+                'members': {'$elemMatch': {'name': name, 'realm': realm}}
+            }},
+            {'$unwind': '$members'},
+            {'$group': {'_id': {'name': '$members.name',
+                                'realm': '$members.realm'}, 'value': {'$sum': 1}}},
+            {'$sort': {'value': -1}},
+        ])
+        records = list(map(lambda r: {
+                       'name': r['_id']['name'], 'realm': r['_id']['realm'], 'value': r['value']}, records))
+        return records
+    

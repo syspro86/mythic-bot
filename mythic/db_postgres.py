@@ -374,3 +374,36 @@ class MythicDatabase:
             cur.close()
 
         return []
+    
+    def get_relation(self, name, realm, run):
+        if self.conn is None:
+            return []
+
+        try:
+            cur = self.conn.cursor()
+            cur.execute("""
+                SELECT PLAYER_REALM, PLAYER_NAME, COUNT(1) FROM MYTHIC_RECORD_PLAYER
+                WHERE RECORD_ID IN (
+                SELECT mbp.RECORD_ID FROM MYTHIC_RECORD_PLAYER mbp
+                WHERE mbp.PLAYER_REALM = %s
+                AND mbp.PLAYER_NAME = %s
+                )
+                GROUP BY PLAYER_REALM, PLAYER_NAME
+                HAVING COUNT(1) >= %s
+                ORDER BY 3 DESC
+            """, [realm, name, int(run)])
+
+            rows = cur.fetchall()
+            if not rows:
+                return []
+
+            return list(map(lambda r: { 'name': r[1], 'realm': r[0], 'value': r[2] }, rows))
+
+        except Exception as e:
+            logger.info(str(e))
+            traceback.print_exc()
+        finally:
+            cur.close()
+
+        return []
+    

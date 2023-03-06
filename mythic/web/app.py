@@ -332,21 +332,12 @@ def char_weekly_realm_name(realm, name):
         return jsonify(None)
 
 
-@app.route('/char/relation/<realm>/<name>')
+@app.route('/char/relation/<realm>/<name>/<run>')
 @using_db
-def char_relation_realm_name(realm, name):
-    records = util.db.aggregate('records', [
-        {'$match': {
-            'members': {'$elemMatch': {'name': name, 'realm': realm}}
-        }},
-        {'$unwind': '$members'},
-        {'$group': {'_id': {'name': '$members.name',
-                            'realm': '$members.realm'}, 'value': {'$sum': 1}}},
-        {'$sort': {'value': -1}},
-    ])
+def char_relation_realm_name(realm, name, run):
+    name = name[0:1].upper() + name[1:].lower()
+    records = util.db.get_relation(name, realm, run)
     if len(records) > 0:
-        records = list(map(lambda r: {
-                       'name': r['_id']['name'], 'realm': r['_id']['realm'], 'value': r['value']}, records))
         records = list(
             filter(lambda r: r['name'] != name or r['realm'] != realm, records))
         return jsonify(records)
