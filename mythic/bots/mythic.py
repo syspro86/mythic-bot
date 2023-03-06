@@ -112,6 +112,7 @@ class MythicBot(BaseBot):
         record['completed_timestamp'] = completed_timestamp
         record['keystone_level'] = keystone_level
         record['keystone_upgrade'] = -1
+        record['mythic_rating'] = float(rec['mythic_rating']['rating']) if 'mythic_rating' in rec and 'rating' in rec['mythic_rating'] else 0
 
         for ku in dungeon['keystone_upgrades']:
             if ku['qualifying_duration'] > duration:

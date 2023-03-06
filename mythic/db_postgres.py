@@ -46,12 +46,13 @@ class MythicDatabase:
             record['completed_timestamp'],
             record['keystone_level'],
             record['keystone_upgrade'],
+            record['mythic_rating'],
             json.dumps(record)
         )]
 
         try:
             cur.executemany(
-                "insert into public.mythic_record(record_id, season, period, dungeon_id, duration, completed_timestamp, keystone_level, keystone_upgrade, json_text) values (%s, %s, %s, %s, %s, %s, %s, %s, %s)", rows)
+                "insert into public.mythic_record(record_id, season, period, dungeon_id, duration, completed_timestamp, keystone_level, keystone_upgrade, mythic_rating, json_text) values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)", rows)
 
             cur.executemany(
                 "insert into mythic_record_player(record_id, player_realm, player_name, spec_id, class_name, spec_name, role_name) values (%s, %s, %s, %s, %s, %s, %s)", players)
