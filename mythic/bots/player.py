@@ -35,6 +35,10 @@ class CollectPlayerBot(BaseBot):
             for loadout in spec['loadouts']:
                 if not loadout['is_active']:
                     continue
+                if 'selected_class_talents' not in loadout:
+                    continue
+                if 'selected_spec_talents' not in loadout:
+                    continue
 
                 talent_code = loadout['talent_loadout_code']
                 talent = {
