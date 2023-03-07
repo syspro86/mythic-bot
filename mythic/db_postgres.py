@@ -437,6 +437,18 @@ class MythicDatabase:
     def update_player_talent(self, talent, slots):
         try:
             cur = self.conn.cursor()
+
+            cur.execute("""
+                DELETE FROM PLAYER_TALENT
+                 WHERE PLAYER_REALM = %s
+                   AND PLAYER_NAME = %s
+                   AND SPEC_ID = %s
+            """, [
+                talent['player_realm'],
+                talent['player_name'],
+                talent['spec_id']
+            ])
+
             cur.execute("""
                 INSERT INTO PLAYER_TALENT
                 (PLAYER_REALM, PLAYER_NAME, SPEC_ID, TALENT_CODE, LAST_UPDATE_TS)
