@@ -14,12 +14,12 @@ if __name__ == '__main__':
         bot = sys.argv[1]
 
     if bot == 'test':
-        MythicBot().on_schedule()
+        CollectPlayerBot().on_schedule()
     elif bot == 'collect':
         MythicBot().cron(minute='*/10')
         # CollectAuctionBot().cron(minute='*/10')
         # CollectIndexBot().cron(hour='0')
-        # CollectPlayerBot().cron(hour='*')
+        CollectPlayerBot().cron(minute='3-54/10')
         BaseBot.start_cron()
     elif bot == 'telegram':
         TelegramBot().cron(hour='*')

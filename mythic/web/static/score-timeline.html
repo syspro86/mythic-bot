@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+<title>Mythic+</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta charset="UTF-8">
+<link rel="stylesheet" href="css/angular-material.min.css">
+</head>
+
+<body ng-app="MyApp" ng-controller="MyController" ng-cloak>
+	<section layout="column" style="margin: 5px;">
+		<section layout="row">
+			<input flex type="text" ng-model="characterName" /> <select
+				name="server" ng-model="server">
+				<option ng-repeat="server in servers" value="{{server}}">{{server}}</option>
+			</select>
+			<md-button ng-click="search()" class="md-primary md-raised">조회</md-button>
+		</section>
+
+		<section flex layout="row">
+			<div flex id="timeline" style="height: 100vh"></div>
+		</section>
+	</section>
+
+	<script src="js/angular.min.js"></script>
+	<script src="js/angular-animate.min.js"></script>
+	<script src="js/angular-aria.min.js"></script>
+	<script src="js/angular-messages.min.js"></script>
+	<script src="js/angular-material.min.js"></script>
+
+    <script src="//unpkg.com/vis-charts@latest/dist/vis.min.js"></script>
+    <link href="//unpkg.com/vis-charts@latest/dist/vis.min.css" rel="stylesheet" type="text/css">
+
+	<script>
+
+        var app = angular.module('MyApp', ['ngMaterial']);
+        app.controller('MyController', MyController);
+
+        function MyController($scope, $http, $timeout) {
+            $scope.characterName = ''
+            $scope.server = ''
+            $scope.servers = {}
+            $scope.serverNames = []
+            $scope.periodStart = 885
+            $scope.periodEnd = 896
+
+            $http({
+                method: 'GET',
+                url: 'form/realms',
+            }).then(function (resp) {
+                $scope.servers = resp.data
+                for (var key in $scope.servers) {
+                    $scope.serverNames.push($scope.servers[key])
+                }
+                $scope.server = $scope.serverNames[0]
+
+                if (window.localStorage) {
+                    const server = window.localStorage.getItem('relation_server')
+                    const run = parseInt(window.localStorage.getItem('relation_run'))
+                    if ($scope.serverNames.indexOf(server) >= 0) {
+                        $scope.server = server
+                    }
+                    $scope.characterName = window.localStorage.getItem('relation_character')
+                    if (run > 0) {
+                        $scope.minimumRun = parseIntun
+                    }
+                }
+            }).catch(function () {
+            })
+
+            $scope.items = []
+            $scope.groups = [{
+                id: 0, content: "total"
+            }]
+
+            $scope.search = function () {
+                if ($scope.characterName == '') {
+                    return
+                }
+                $scope.characterName = $scope.characterName.substring(0, 1).toUpperCase() +
+                    $scope.characterName.substring(1).toLowerCase()
+                if (window.localStorage) {
+                    window.localStorage.setItem('relation_server', $scope.server)
+                    window.localStorage.setItem('relation_character', $scope.characterName)
+                }
+
+                let period = $scope.periodStart
+                if ($scope.items.length > 0) {
+                    period = Math.max.apply(null, $scope.items.map(it => it.x)) + 1
+                }
+                if (period > $scope.periodEnd) {
+                    var container = document.getElementById('timeline')
+                    var graph2d = new vis.Graph2d(container, $scope.items, $scope.groups, {
+                        style: 'bar',
+                        stack: true,
+                        legend: true,
+                        barChart: { width: 50, align: 'center' },
+                        drawPoints: false,
+                        dataAxis: {
+                            icons: true
+                        },
+                    })
+                    return
+                }
+
+                $http({
+                    method: 'GET',
+                    url: 'char/mythic_rating/' + encodeURI($scope.server) + '/' + encodeURI($scope.characterName) + '/' + period,
+                }).then(function (resp) {
+                    console.log(resp.data)
+
+                    let dungeonScore = {}
+                    let score = 0
+                    resp.data.forEach(data => {
+                        if (!dungeonScore[data.dungeon_id]) {
+                            dungeonScore[data.dungeon_id] = []
+                        }
+                        dungeonScore[data.dungeon_id].push(data.mythic_rating)
+                        if (!($scope.groups.some(g => g.id == data.dungeon_id))) {
+                            $scope.groups.push({
+                                id: data.dungeon_id,
+                                content: data.dungeon_name
+                            })
+                        }
+                    })
+                    for (let did in dungeonScore) {
+                        const arr = dungeonScore[did]
+                        const dscore = arr[0] * 1.5 + (arr.length > 1 ? arr[1] * 0.5 : 0)
+                        score += dscore
+
+                        $scope.items.push({
+                            x: period,
+                            y: dscore,
+                            group: parseInt(did)
+                        })
+                    }
+
+                    if (score == 0) {
+                        $scope.items.push({
+                            x: period,
+                            y: score,
+                            group: 0
+                        })
+                    }
+                    $timeout($scope.search, 10)
+                }).catch(function () {
+                })
+            }
+        }
+    </script>
+</body>
+
+</html>

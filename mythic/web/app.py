@@ -345,6 +345,17 @@ def char_relation_realm_name(realm, name, run):
         return jsonify([])
 
 
+@app.route('/char/mythic_rating/<realm>/<name>/<period>')
+@using_db
+def char_mythicrating_realm_name(realm, name, period):
+    name = name[0:1].upper() + name[1:].lower()
+    records = util.db.find_mythic_rating(realm, name, int(period))
+    if len(records) > 0:
+        return jsonify(records)
+    else:
+        return jsonify([])
+
+
 @app.route('/my_pet', methods=['GET', 'POST'])
 @using_db
 def list_my_pets():

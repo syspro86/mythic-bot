@@ -107,6 +107,66 @@ class MythicDatabase:
         finally:
             cur.close()
 
+    def update_dungeon(self, dungeon):
+        if self.conn is None:
+            return []
+
+        try:
+            cur = self.conn.cursor()
+            cur.execute("""
+                INSERT INTO MYTHIC_DUNGEON
+                (DUNGEON_ID, DUNGEON_NAME, ZONE, UPGRADE_1, UPGRADE_2, UPGRADE_3)
+                VALUES
+                (%s, %s, %s, %s, %s, %s)
+                ON CONFLICT (DUNGEON_ID) DO NOTHING
+            """, [ dungeon['id'], dungeon['name'], dungeon['zone']['slug'],
+                  list(filter(lambda d: d['upgrade_level'] == 1, dungeon['keystone_upgrades']))[0]['qualifying_duration'],
+                  list(filter(lambda d: d['upgrade_level'] == 2, dungeon['keystone_upgrades']))[0]['qualifying_duration'],
+                  list(filter(lambda d: d['upgrade_level'] == 3, dungeon['keystone_upgrades']))[0]['qualifying_duration'],
+            ])
+
+            self.conn.commit()
+        except Exception as e:
+            self.conn.rollback()
+            logger.info(str(e))
+            traceback.print_exc()
+        finally:
+            cur.close()
+
+    def find_mythic_rating(self, realm, name, period):
+        if self.conn is None:
+            return []
+
+        try:
+            cur = self.conn.cursor()
+            cur.execute("""
+            SELECT DUNGEON_ID,DUNGEON_NAME,MYTHIC_RATING,P2
+              FROM (
+                SELECT DUNGEON_ID,(SELECT DUNGEON_NAME FROM MYTHIC_DUNGEON WHERE DUNGEON_ID = MR.DUNGEON_ID) AS DUNGEON_NAME, MYTHIC_RATING, MOD(PERIOD,2) AS P2,
+                       ROW_NUMBER() OVER (PARTITION BY DUNGEON_ID, MOD(PERIOD,2) ORDER BY MYTHIC_RATING DESC) AS RN
+                  FROM MYTHIC_RECORD MR, MYTHIC_RECORD_PLAYER MRP 
+                 WHERE MRP.PLAYER_REALM = %s
+                   AND MRP.PLAYER_NAME = %s
+                   AND MR.RECORD_ID = MRP.RECORD_ID
+                   AND MR.MYTHIC_RATING IS NOT NULL
+                   AND MR.PERIOD < %s
+                ) RR
+             WHERE RR.RN = 1
+            """, [realm, name, period])
+
+            rows = cur.fetchall()
+            if not rows:
+                return []
+
+            return list(map(lambda r: {
+                "dungeon_id": int(r[0]),
+                "dungeon_name": str(r[1]),
+                "mythic_rating": float(r[2]),
+                "affix": int(r[3])
+            }, rows))
+        finally:
+            cur.close()
+
 
     def save_botuser(self, user, upsert=False):
         if self.conn is None:
@@ -194,6 +254,42 @@ class MythicDatabase:
         finally:
             cur.close()
         return []
+    
+    def find_realm_slug(self, realm_name):
+        try:
+            cur = self.conn.cursor()
+            cur.execute("""
+                SELECT REALM_SLUG FROM PLAYER_REALM
+                WHERE REALM_NAME = %s
+            """, [ realm_name ])
+            return cur.fetchone()[0]
+        except Exception as e:
+            logger.info(str(e))
+            traceback.print_exc()
+        finally:
+            cur.close()
+        return None
+
+    def insert_realm(self, realm):
+        try:
+            cur = self.conn.cursor()
+            cur.execute("""
+                INSERT INTO PLAYER_REALM
+                (REALM_ID, REALM_SLUG, REALM_NAME)
+                VALUES (%s, %s, %s)
+                ON CONFLICT (REALM_ID) DO NOTHING
+            """, [
+                realm['realm_id'],
+                realm['realm_slug'],
+                realm['realm_name']
+            ])
+            self.conn.commit()
+        except Exception as e:
+            self.conn.rollback()
+            logger.info(str(e))
+            traceback.print_exc()
+        finally:
+            cur.close()
 
     def find_auction(self, auction_id):
         return True
@@ -309,6 +405,70 @@ class MythicDatabase:
 
     def find_player(self, id):
         return None
+    
+    def next_update_player(self):
+        try:
+            cur = self.conn.cursor()
+            cur.execute("""
+                select rp.player_realm, rp.player_name, last_update_ts from (
+                select distinct player_realm, player_name from mythic_record_player
+                where record_id in (
+                select record_id from mythic_record
+                where period = (select max(period) from mythic_record)
+                and keystone_level >= 20
+                and keystone_upgrade >= 1
+                )
+                ) rp left outer join player_talent pt
+                on (rp.player_realm = pt.player_realm and rp.player_name = pt.player_name)
+                order by last_update_ts desc
+                limit 1
+            """)
+            
+            r = cur.fetchone()
+            return { 'realm': r[0], 'name': r[1] }
+
+        except:
+            traceback.print_exc()
+        finally:
+            cur.close()
+
+        return None
+    
+    def update_player_talent(self, talent, slots):
+        try:
+            cur = self.conn.cursor()
+            cur.execute("""
+                INSERT INTO PLAYER_TALENT
+                (PLAYER_REALM, PLAYER_NAME, SPEC_ID, TALENT_CODE, LAST_UPDATE_TS)
+                VALUES(%s, %s, %s, %s, %s)
+                ON CONFLICT (PLAYER_REALM, PLAYER_NAME, SPEC_ID) DO NOTHING
+            """, [
+                talent['player_realm'],
+                talent['player_name'],
+                talent['spec_id'],
+                talent['talent_code'],
+                talent['last_update_ts']
+            ])
+
+            cur.executemany("""
+                INSERT INTO PLAYER_TALENT_SLOT
+                (TALENT_CODE, TALENT_ID, TALENT_RANK)
+                VALUES(%s, %s, %s)
+                ON CONFLICT (TALENT_CODE, TALENT_ID) DO NOTHING
+            """, list(map(lambda s: (
+                s['talent_code'],
+                s['talent_id'],
+                s['talent_rank']
+            ), slots)))
+            
+            self.conn.commit()
+
+        except:
+            self.conn.rollback()
+            traceback.print_exc()
+        finally:
+            cur.close()
+
 
     def list_doc(self, collection, match=None, limit=None, project=None):
         return []

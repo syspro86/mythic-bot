@@ -24,53 +24,67 @@ class MythicBot(BaseBot):
             self.telegram.send_message(text='mythic app start')
 
     def init_api(self, force):
+        try:
+            self.db.connect()
 
-        realms = self.api.bn_request(
-            "/data/wow/realm/index", token=True, namespace="dynamic")
-        self.realm_cache = {}
-        for realm in realms['realms']:
-            realm_id = realm['id']
-            self.realm_cache[realm_id] = realm
+            realms = self.api.bn_request(
+                "/data/wow/realm/index", token=True, namespace="dynamic")
+            self.realm_cache = {}
+            for realm in realms['realms']:
+                realm_id = realm['id']
+                self.realm_cache[realm_id] = realm
+                
+                realm_id = realm['id']
+                realm_slug = realm['slug']
+                realm_name = realm['name']
+                self.db.insert_realm({
+                    'realm_id': realm_id,
+                    'realm_slug': realm_slug,
+                    'realm_name': realm_name
+                })
 
-        dungeons = self.api.bn_request(
-            "/data/wow/mythic-keystone/dungeon/index", token=True, namespace="dynamic")
-        self.dungeon_cache = {}
-        for dungeon in dungeons['dungeons']:
-            dungeon_id = dungeon['id']
-            d = self.api.bn_request(
-                f"/data/wow/mythic-keystone/dungeon/{dungeon_id}", token=True, namespace="dynamic")
-            self.dungeon_cache[dungeon_id] = d
+            dungeons = self.api.bn_request(
+                "/data/wow/mythic-keystone/dungeon/index", token=True, namespace="dynamic")
+            self.dungeon_cache = {}
+            for dungeon in dungeons['dungeons']:
+                dungeon_id = dungeon['id']
+                d = self.api.bn_request(
+                    f"/data/wow/mythic-keystone/dungeon/{dungeon_id}", token=True, namespace="dynamic")
+                self.dungeon_cache[dungeon_id] = d
+                self.db.update_dungeon(d)
 
-        specs = self.api.bn_request(
-            "/data/wow/playable-specialization/index", token=True, namespace="static")
-        self.spec_cache = {}
-        for spec in specs['character_specializations']:
-            spec_id = spec['id']
-            spec = self.api.bn_request(
-                f"/data/wow/playable-specialization/{spec_id}", token=True, namespace="static")
-            self.spec_cache[spec_id] = spec
+            specs = self.api.bn_request(
+                "/data/wow/playable-specialization/index", token=True, namespace="static")
+            self.spec_cache = {}
+            for spec in specs['character_specializations']:
+                spec_id = spec['id']
+                spec = self.api.bn_request(
+                    f"/data/wow/playable-specialization/{spec_id}", token=True, namespace="static")
+                self.spec_cache[spec_id] = spec
 
-        seasons = self.api.bn_request(
-            "/data/wow/mythic-keystone/season/index", token=True, namespace="dynamic")
-        self.current_season = seasons['current_season']['id']
+            seasons = self.api.bn_request(
+                "/data/wow/mythic-keystone/season/index", token=True, namespace="dynamic")
+            self.current_season = seasons['current_season']['id']
 
-        periods = self.api.bn_request(
-            "/data/wow/mythic-keystone/period/index", token=True, namespace="dynamic")
-        self.period_ids = []
-        for period in periods['periods']:
-            period_id = period['id']
-            self.period_ids.append(period_id)
+            periods = self.api.bn_request(
+                "/data/wow/mythic-keystone/period/index", token=True, namespace="dynamic")
+            self.period_ids = []
+            for period in periods['periods']:
+                period_id = period['id']
+                self.period_ids.append(period_id)
 
-        self.current_period = periods['current_period']['id']
-        period_detail = self.api.bn_request(
-            f"/data/wow/mythic-keystone/period/{self.current_period}", token=True, namespace="dynamic")
-        self.end_timestamp = int(period_detail['end_timestamp'])
-        end_timestamp_str = datetime.fromtimestamp(
-            self.end_timestamp / 1000).strftime('%Y-%m-%d %H:%M:%S')
-        logger.info(
-            f"season: {self.current_season}, period: {self.current_period}, ends: {end_timestamp_str}")
+            self.current_period = periods['current_period']['id']
+            period_detail = self.api.bn_request(
+                f"/data/wow/mythic-keystone/period/{self.current_period}", token=True, namespace="dynamic")
+            self.end_timestamp = int(period_detail['end_timestamp'])
+            end_timestamp_str = datetime.fromtimestamp(
+                self.end_timestamp / 1000).strftime('%Y-%m-%d %H:%M:%S')
+            logger.info(
+                f"season: {self.current_season}, period: {self.current_period}, ends: {end_timestamp_str}")
 
-        self.need_init = False
+            self.need_init = False
+        finally:
+            self.db.disconnect()
 
     def get_leaderboard(self, realm_id, dungeon_id, season, period):
         board = self.api.bn_request(
@@ -113,6 +127,14 @@ class MythicBot(BaseBot):
         record['keystone_level'] = keystone_level
         record['keystone_upgrade'] = -1
         record['mythic_rating'] = float(rec['mythic_rating']['rating']) if 'mythic_rating' in rec and 'rating' in rec['mythic_rating'] else 0
+
+        # 점수 공식
+        #if upgrade >= duration:
+        #    score = 30 + level * 7 + min(float(upgrade - duration) / upgrade, 0.4) * 5 / 0.4
+        #elif (duration-upgrade)/upgrade < 0.4:
+        #    score = 25 + min(level, 20) * 7 - min(float(duration - upgrade) / upgrade, 0.4) * 5 / 0.4
+        #else:
+        #    score = 0
 
         for ku in dungeon['keystone_upgrades']:
             if ku['qualifying_duration'] > duration:
