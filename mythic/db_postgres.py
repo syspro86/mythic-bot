@@ -149,7 +149,7 @@ class MythicDatabase:
                    AND MRP.PLAYER_NAME = %s
                    AND MR.RECORD_ID = MRP.RECORD_ID
                    AND MR.MYTHIC_RATING IS NOT NULL
-                   AND MR.PERIOD < %s
+                   AND MR.PERIOD <= %s
                 ) RR
              WHERE RR.RN = 1
             """, [realm, name, period])

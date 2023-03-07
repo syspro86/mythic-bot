@@ -15,7 +15,7 @@
 				name="server" ng-model="server">
 				<option ng-repeat="server in servers" value="{{server}}">{{server}}</option>
 			</select>
-			<md-button ng-click="search()" class="md-primary md-raised">조회</md-button>
+			<md-button ng-click="search(true)" class="md-primary md-raised">조회</md-button>
 		</section>
 
 		<section flex layout="row">
@@ -71,10 +71,14 @@
 
             $scope.items = []
             $scope.groups = [{
-                id: 0, content: "total"
+                id: '0',
+                content: "total",
+                options: {
+                    excludeFromStacking: true
+                }
             }]
 
-            $scope.search = function () {
+            $scope.search = function (force) {
                 if ($scope.characterName == '') {
                     return
                 }
@@ -86,21 +90,47 @@
                 }
 
                 let period = $scope.periodStart
+                if (force) {
+                    $scope.items = []
+                    $scope.groups = [{
+                        id: '0',
+                        content: "total",
+                        options: {
+                            excludeFromStacking: true
+                        }
+                    }]
+                }
                 if ($scope.items.length > 0) {
                     period = Math.max.apply(null, $scope.items.map(it => it.x)) + 1
                 }
                 if (period > $scope.periodEnd) {
                     var container = document.getElementById('timeline')
+                    container.innerHTML = ''
                     var graph2d = new vis.Graph2d(container, $scope.items, $scope.groups, {
                         style: 'bar',
                         stack: true,
                         legend: true,
-                        barChart: { width: 50, align: 'center' },
-                        drawPoints: false,
+                        min: $scope.periodStart - 1,
+                        max: $scope.periodEnd + 1,
+                        // barChart: { width: 50, align: 'center' },
+                        drawPoints: {
+                            onRender: function(item, group, grap2d) {
+                                return item.label != null;
+                            },
+                            style: 'circle'
+                        },                        
                         dataAxis: {
-                            icons: true
+                            icons: true,
+                            left: {
+                                range: {
+                                    min: 0,
+                                    max: Math.ceil(Math.max.apply(null, $scope.items.filter(it => it.group == '0').map(it => it.y)) / 100) * 100 + 200
+                                }
+                            }
                         },
+                        height: 900
                     })
+                    graph2d.setWindow($scope.periodStart - 1, $scope.periodEnd + 1)
                     return
                 }
 
@@ -117,30 +147,40 @@
                             dungeonScore[data.dungeon_id] = []
                         }
                         dungeonScore[data.dungeon_id].push(data.mythic_rating)
-                        if (!($scope.groups.some(g => g.id == data.dungeon_id))) {
+                        if (!($scope.groups.some(g => g.id == String(data.dungeon_id)))) {
                             $scope.groups.push({
-                                id: data.dungeon_id,
+                                id: String(data.dungeon_id),
                                 content: data.dungeon_name
                             })
                         }
                     })
                     for (let did in dungeonScore) {
-                        const arr = dungeonScore[did]
+                        const arr = dungeonScore[did].sort().reverse()
                         const dscore = arr[0] * 1.5 + (arr.length > 1 ? arr[1] * 0.5 : 0)
                         score += dscore
 
                         $scope.items.push({
                             x: period,
                             y: dscore,
-                            group: parseInt(did)
+                            group: String(did),
+                            label: {
+                                content: String(parseInt(dscore)),
+                                xOffset: -20,
+                                yOffset: 20
+                            }
                         })
                     }
 
-                    if (score == 0) {
+                    if (score >= 0) {
                         $scope.items.push({
                             x: period,
                             y: score,
-                            group: 0
+                            group: '0',
+                            label: {
+                                content: String(parseInt(score)),
+                                xOffset: -20,
+                                yOffset: -20
+                            }
                         })
                     }
                     $timeout($scope.search, 10)
