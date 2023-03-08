@@ -291,6 +291,60 @@ class MythicDatabase:
         finally:
             cur.close()
 
+    def find_period(self, period=None, timestamp=None):
+        try:
+            cur = self.conn.cursor()
+            if period is not None:
+                cur.execute("""
+                    SELECT PERIOD, START_TIMESTAMP, END_TIMESTAMP FROM MYTHIC_PERIOD
+                    WHERE PERIOD = %s
+                """, [ period ])
+            elif timestamp is not None:
+                cur.execute("""
+                    SELECT PERIOD, START_TIMESTAMP, END_TIMESTAMP FROM MYTHIC_PERIOD
+                    WHERE START_TIMESTAMP <= %s
+                      AND END_TIMESTAMP > %s
+                """, [ timestamp, timestamp ])
+            else:
+                return None
+            
+            r = cur.fetchone()
+            return {
+                "period": int(r[0]),
+                "start_timestamp": int(r[1]),
+                "end_timestamp": int(r[2])
+            }
+        except Exception as e:
+            logger.info(str(e))
+            traceback.print_exc()
+        finally:
+            cur.close()
+        return None
+
+    def insert_period(self, period):
+        try:
+            cur = self.conn.cursor()
+            cur.execute("""
+                INSERT INTO MYTHIC_PERIOD
+                (PERIOD, START_TIMESTAMP, END_TIMESTAMP)
+                VALUES (%s, %s, %s)
+                ON CONFLICT (PERIOD) DO NOTHING
+            """, [
+                period['period'],
+                period['start_timestamp'],
+                period['end_timestamp']
+            ])
+            self.conn.commit()
+            return cur.rowcount > 0
+        except Exception as e:
+            self.conn.rollback()
+            logger.info(str(e))
+            traceback.print_exc()
+        finally:
+            cur.close()
+        return False
+
+
     def find_auction(self, auction_id):
         return True
 
