@@ -474,7 +474,7 @@ class MythicDatabase:
                 )
                 ) rp left outer join player_talent pt
                 on (rp.player_realm = pt.player_realm and rp.player_name = pt.player_name)
-                order by last_update_ts desc
+                order by last_update_ts asc
                 limit 1
             """)
             
