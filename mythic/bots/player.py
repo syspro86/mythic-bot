@@ -111,6 +111,7 @@ class CollectPlayerBot(BaseBot):
             now_ts = int(datetime.now().timestamp() * 1000)
 
             now_ts2 = now_ts
+            update_cnt = 0
             while now_ts2 - now_ts < 300_000:
                 p = self.db.next_update_player()
                 if p is None:
@@ -118,9 +119,10 @@ class CollectPlayerBot(BaseBot):
 
                 self.update_player(p['realm'], p['name'])
                 now_ts2 = int(datetime.now().timestamp() * 1000)
+                update_cnt += 1
 
             now_ts2 = int(datetime.now().timestamp() * 1000)
-            logger.info(f'collected in {now_ts2 - now_ts} ms')
+            logger.info(f'collected in {now_ts2 - now_ts} ms, {update_cnt} player updated.')
         except Exception as e:
             self.print_error(e)
 
