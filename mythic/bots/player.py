@@ -13,6 +13,7 @@ class CollectPlayerBot(BaseBot):
             self.telegram.send_message(text='player app start')
 
         self.mythic_bot = mythic_bot
+        self.mythic_bot.db = self.db
 
     def init(self):
         pass
