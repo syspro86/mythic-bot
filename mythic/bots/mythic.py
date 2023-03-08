@@ -68,15 +68,15 @@ class MythicBot(BaseBot):
 
             periods = self.api.bn_request(
                 "/data/wow/mythic-keystone/period/index", token=True, namespace="dynamic")
-            self.period_ids = []
-            for period in periods['periods']:
-                period_id = period['id']
-                self.period_ids.append(period_id)
+            for period in sorted(periods['periods'], key=lambda r: -r['id']):
+                period_res = self.api.bn_request(
+                    f"/data/wow/mythic-keystone/period/{period['id']}", token=True, namespace="dynamic")
+                period_res['period'] = period_res['id']
+                if not self.db.insert_period(period_res):
+                    break
 
             self.current_period = periods['current_period']['id']
-            period_detail = self.api.bn_request(
-                f"/data/wow/mythic-keystone/period/{self.current_period}", token=True, namespace="dynamic")
-            self.end_timestamp = int(period_detail['end_timestamp'])
+            self.end_timestamp = int(self.db.find_period(period=self.current_period)['end_timestamp'])
             end_timestamp_str = datetime.fromtimestamp(
                 self.end_timestamp / 1000).strftime('%Y-%m-%d %H:%M:%S')
             logger.info(
@@ -86,7 +86,7 @@ class MythicBot(BaseBot):
         finally:
             self.db.disconnect()
 
-    def get_leaderboard(self, realm_id, dungeon_id, season, period):
+    def get_leaderboard(self, realm_id, dungeon_id, period):
         board = self.api.bn_request(
             f"/data/wow/connected-realm/{realm_id}/mythic-leaderboard/{dungeon_id}/period/{period}", token=True, namespace="dynamic")
         if type(board) is not dict or 'leading_groups' not in board:
@@ -94,9 +94,9 @@ class MythicBot(BaseBot):
             return
 
         for rec in board['leading_groups']:
-            self.insert_record(board, rec, season, dungeon_id)
+            self.insert_record(board, rec, dungeon_id)
 
-    def insert_record(self, board, rec, season, dungeon_id):
+    def insert_record(self, board, rec, dungeon_id):
         record = {}
         # ranking = rec['ranking']
         duration = rec['duration']
@@ -119,7 +119,7 @@ class MythicBot(BaseBot):
         if record_id in self.inserted_id_set:
             return
 
-        record['season'] = season
+        record['season'] = self.current_season
         record['period'] = period
         record['dungeon_id'] = dungeon_id
         record['duration'] = duration
@@ -221,7 +221,7 @@ class MythicBot(BaseBot):
                 logger.info(f"{self.dungeon_cache[did]['name']} ({did})")
                 for rid in self.realm_cache.keys():
                     self.get_leaderboard(
-                        rid, did, self.current_season, self.current_period)
+                        rid, did, self.current_period)
 
             now_ts2 = int(datetime.now().timestamp() * 1000)
             logger.info(f'collected in {now_ts2 - now_ts} ms')

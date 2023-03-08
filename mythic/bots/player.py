@@ -5,18 +5,43 @@ from mythic.bots.base import BaseBot
 from datetime import datetime
 
 class CollectPlayerBot(BaseBot):
-    def __init__(self):
+    def __init__(self, mythic_bot):
         super().__init__()
         self.init()
 
         if __name__ == '__main__':
             self.telegram.send_message(text='player app start')
 
+        self.mythic_bot = mythic_bot
+
     def init(self):
         pass
 
     def update_player(self, realm, character_name):
         realm_slug = self.db.find_realm_slug(realm)
+        self.update_player_runs(realm, realm_slug, character_name)
+        self.update_player_talent(realm, realm_slug, character_name)
+
+    def update_player_runs(self, realm, realm_slug, character_name):
+        profile = self.api.bn_request(f"/profile/wow/character/{realm_slug}/{character_name}/mythic-keystone-profile", token=True, namespace="profile")
+        for season in profile['seasons']:
+            href = season['key']['href']
+            season_res = self.api.bn_request(href, token=True)
+            if season_res['season']['id'] != self.mythic_bot.current_season:
+                continue
+            if 'best_runs' not in season_res:
+                return
+            for run in season_res['best_runs']:
+                board = {
+                    'period': self.db.find_period(timestamp=run['completed_timestamp'])['period']
+                }
+                
+                for mem in run['members']:
+                    mem['profile'] = mem['character']
+
+                self.mythic_bot.insert_record(board, run, run['dungeon']['id'])
+                             
+    def update_player_talent(self, realm, realm_slug, character_name):
         talents = self.api.bn_request(f"/profile/wow/character/{realm_slug}/{character_name}/specializations", token=True, namespace="profile")
         if talents is None:
             return
@@ -96,6 +121,3 @@ class CollectPlayerBot(BaseBot):
 
         finally:
             self.db.disconnect()
-
-if __name__ == '__main__':
-    CollectPlayerBot().on_schedule()
