@@ -35,3 +35,11 @@ jobs:
         platforms: linux/amd64,linux/arm64
         push: true
         tags: ghcr.io/${{ github.repository_owner }}/mythic-bot:latest
+
+    - name: Send update message
+      uses: appleboy/telegram-action@master
+      with:
+        to: ${{ secrets.TELEGRAM_TO }}
+        token: ${{ secrets.TELEGRAM_TOKEN }}
+        message: |
+          mythic-bot docker image updated
