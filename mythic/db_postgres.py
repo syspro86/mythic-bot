@@ -474,6 +474,25 @@ class MythicDatabase:
                 )
                 ) rp left outer join player_talent pt
                 on (rp.player_realm = pt.player_realm and rp.player_name = pt.player_name)
+                where last_update_ts is null
+                limit 1
+            """)
+
+            r = cur.fetchone()
+            if r is not None:
+                return { 'realm': r[0], 'name': r[1] }
+
+            cur.execute("""
+                select rp.player_realm, rp.player_name, last_update_ts from (
+                select distinct player_realm, player_name from mythic_record_player
+                where record_id in (
+                select record_id from mythic_record
+                where period = (select max(period) from mythic_record)
+                and keystone_level >= 20
+                and keystone_upgrade >= 1
+                )
+                ) rp left outer join player_talent pt
+                on (rp.player_realm = pt.player_realm and rp.player_name = pt.player_name)
                 order by last_update_ts asc
                 limit 1
             """)
