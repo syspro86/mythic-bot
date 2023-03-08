@@ -36,7 +36,7 @@ toml==0.10.1
 tornado==6.1
 tzlocal==2.1
 urllib3==1.26.5
-Werkzeug==1.0.1
+Werkzeug==2.2.3
 wrapt==1.13.3
 yarg==0.1.9
 ratelimit==2.2.1
