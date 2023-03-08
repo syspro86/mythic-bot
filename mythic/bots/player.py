@@ -25,6 +25,10 @@ class CollectPlayerBot(BaseBot):
 
     def update_player_runs(self, realm, realm_slug, character_name):
         profile = self.api.bn_request(f"/profile/wow/character/{realm_slug}/{character_name}/mythic-keystone-profile", token=True, namespace="profile")
+        if isinstance(profile, int):
+            return
+        if 'seasons' not in profile:
+            return
         for season in profile['seasons']:
             href = season['key']['href']
             season_res = self.api.bn_request(href, token=True)
@@ -46,7 +50,7 @@ class CollectPlayerBot(BaseBot):
         talents = self.api.bn_request(f"/profile/wow/character/{realm_slug}/{character_name}/specializations", token=True, namespace="profile")
         if talents is None:
             return
-        if type(talents) is int:
+        if isinstance(talents, int):
             self.db.update_player_talent({
                 'player_realm': realm,
                 'player_name': character_name,
