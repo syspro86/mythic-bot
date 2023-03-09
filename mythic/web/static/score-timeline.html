@@ -43,7 +43,7 @@
             $scope.servers = {}
             $scope.serverNames = []
             $scope.periodStart = 885
-            $scope.periodEnd = 896
+            $scope.periodEnd = 897
 
             $http({
                 method: 'GET',
@@ -103,7 +103,7 @@
                 if ($scope.items.length > 0) {
                     period = Math.max.apply(null, $scope.items.map(it => it.x)) + 1
                 }
-                if (period > $scope.periodEnd) {
+                if (true) {
                     var container = document.getElementById('timeline')
                     container.innerHTML = ''
                     var graph2d = new vis.Graph2d(container, $scope.items, $scope.groups, {
@@ -131,6 +131,8 @@
                         height: 900
                     })
                     graph2d.setWindow($scope.periodStart - 1, $scope.periodEnd + 1)
+                }
+                if (period > $scope.periodEnd) {
                     return
                 }
 
