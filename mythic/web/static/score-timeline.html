@@ -128,9 +128,10 @@
                                 }
                             }
                         },
-                        height: 900
+                        height: 900,
+                        start: $scope.periodStart - 1,
+                        end: $scope.periodEnd + 1
                     })
-                    graph2d.setWindow($scope.periodStart - 1, $scope.periodEnd + 1)
                 }
                 if (period > $scope.periodEnd) {
                     return
