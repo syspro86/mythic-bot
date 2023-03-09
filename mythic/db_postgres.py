@@ -504,7 +504,7 @@ class MythicDatabase:
                 return { 'realm': r[0], 'name': r[1] }
 
             cur.execute("""
-                select rp.player_realm, rp.player_name, last_update_ts from player_talent
+                select player_realm, player_name, last_update_ts from player_talent
                 order by last_update_ts asc
                 limit 1
             """)
