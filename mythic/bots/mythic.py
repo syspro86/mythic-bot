@@ -215,7 +215,7 @@ class MythicBot(BaseBot):
         for season in profile['seasons']:
             href = season['key']['href']
             season_res = self.api.bn_request(href, token=True)
-            if season_res['season']['id'] != self.mythic_bot.current_season:
+            if season_res['season']['id'] != self.current_season:
                 continue
             if 'best_runs' not in season_res:
                 return
