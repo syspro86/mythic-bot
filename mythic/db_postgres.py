@@ -523,16 +523,26 @@ class MythicDatabase:
         try:
             cur = self.conn.cursor()
 
-            cur.execute("""
-                DELETE FROM PLAYER_TALENT
-                 WHERE PLAYER_REALM = %s
-                   AND PLAYER_NAME = %s
-                   AND SPEC_ID = %s
-            """, [
-                talent['player_realm'],
-                talent['player_name'],
-                talent['spec_id']
-            ])
+            if talent['spec_id'] == 0:
+                cur.execute("""
+                    DELETE FROM PLAYER_TALENT
+                    WHERE PLAYER_REALM = %s
+                    AND PLAYER_NAME = %s
+                """, [
+                    talent['player_realm'],
+                    talent['player_name']
+                ])
+            else:
+                cur.execute("""
+                    DELETE FROM PLAYER_TALENT
+                    WHERE PLAYER_REALM = %s
+                    AND PLAYER_NAME = %s
+                    AND SPEC_ID = %s
+                """, [
+                    talent['player_realm'],
+                    talent['player_name'],
+                    talent['spec_id']
+                ])
 
             cur.execute("""
                 INSERT INTO PLAYER_TALENT
