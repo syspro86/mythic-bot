@@ -36,6 +36,7 @@
 
         var app = angular.module('MyApp', ['ngMaterial']);
         app.controller('MyController', MyController);
+        var graph2d
 
         function MyController($scope, $http, $timeout) {
             $scope.characterName = ''
@@ -103,10 +104,10 @@
                 if ($scope.items.length > 0) {
                     period = Math.max.apply(null, $scope.items.map(it => it.x)) + 1
                 }
-                if (true) {
+                if ($scope.items.length == 0) {
                     var container = document.getElementById('timeline')
                     container.innerHTML = ''
-                    var graph2d = new vis.Graph2d(container, $scope.items, $scope.groups, {
+                    graph2d = new vis.Graph2d(container, $scope.items, $scope.groups, {
                         style: 'bar',
                         stack: true,
                         legend: true,
@@ -186,6 +187,19 @@
                             }
                         })
                     }
+                    graph2d.setOptions({
+                        dataAxis: {
+                            icons: true,
+                            left: {
+                                range: {
+                                    min: 0,
+                                    max: Math.ceil(Math.max.apply(null, $scope.items.filter(it => it.group == '0').map(it => it.y)) / 100) * 100 + 200
+                                }
+                            }
+                        }
+                    })
+                    graph2d.setItems($scope.items)
+                    graph2d.redraw()
                     $timeout($scope.search, 10)
                 }).catch(function () {
                 })
