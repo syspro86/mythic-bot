@@ -4,9 +4,6 @@ import traceback
 from mythic.config import config
 from mythic.logger import logger
 from mythic.wowapi import WowApi
-from mythic.db import MythicDatabase as MythicDatabaseMongo
-from mythic.db_oracle import MythicDatabase as MythicDatabaseOracle
-from mythic.db_postgres import MythicDatabase as MythicDatabasePostgres
 from mythic.telegram import TelegramBot
 
 
@@ -25,12 +22,15 @@ class BaseBot(object):
                 BaseBot._region_, config.BATTLENET_API_ID, config.BATTLENET_API_SECRET)
         if True:  # BaseBot._db_ is None:
             if config.DB_TYPE == 'oracle':
+                from mythic.db_oracle import MythicDatabase as MythicDatabaseOracle
                 BaseBot._db_ = MythicDatabaseOracle(
                     config.ORACLE_DSN, config.ORACLE_USER, config.ORACLE_PASSWORD, config.ORACLE_CLIENT_PATH)
             elif config.DB_TYPE == 'postgres':
+                from mythic.db_postgres import MythicDatabase as MythicDatabasePostgres
                 BaseBot._db_ = MythicDatabasePostgres(
                     config.POSTGRES_HOST, config.POSTGRES_PORT, config.POSTGRES_DBNAME, config.POSTGRES_USER, config.POSTGRES_PASSWORD)
             elif config.DB_TYPE == 'mongo':
+                from mythic.db import MythicDatabase as MythicDatabaseMongo
                 BaseBot._db_ = MythicDatabaseMongo(
                     config.MONGO_HOST, config.MONGO_DATABASE)
         if BaseBot._telegram_ is None:
