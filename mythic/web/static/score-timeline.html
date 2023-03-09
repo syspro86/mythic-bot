@@ -199,6 +199,7 @@
                         }
                     })
                     graph2d.setItems($scope.items)
+                    graph2d.setGroups($scope.groups)
                     graph2d.redraw()
                     $timeout($scope.search, 10)
                 }).catch(function () {
