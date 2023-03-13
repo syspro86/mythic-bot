@@ -3,6 +3,7 @@ import json
 import traceback
 from mythic.logger import logger
 import copy
+from datetime import datetime
 
 
 class MythicDatabase:
@@ -474,7 +475,37 @@ class MythicDatabase:
                 )
                 ) rp left outer join player_talent pt
                 on (rp.player_realm = pt.player_realm and rp.player_name = pt.player_name)
-                order by last_update_ts desc
+                where last_update_ts is null
+                limit 1
+            """)
+
+            r = cur.fetchone()
+            if r is not None:
+                return { 'realm': r[0], 'name': r[1] }
+
+            cur.execute("""
+                select rp.player_realm, rp.player_name, last_update_ts from (
+                select distinct player_realm, player_name from mythic_record_player
+                where record_id in (
+                select record_id from mythic_record
+                where period = (select max(period) from mythic_record)
+                and keystone_level >= 20
+                and keystone_upgrade >= 1
+                )
+                ) rp left outer join player_talent pt
+                on (rp.player_realm = pt.player_realm and rp.player_name = pt.player_name)
+                where last_update_ts < %s
+                order by last_update_ts asc
+                limit 1
+            """, [ int(datetime.now().timestamp() * 1000) - 1000*60*60*24 ] )
+            
+            r = cur.fetchone()
+            if r is not None:
+                return { 'realm': r[0], 'name': r[1] }
+
+            cur.execute("""
+                select player_realm, player_name, last_update_ts from player_talent
+                order by last_update_ts asc
                 limit 1
             """)
             
@@ -492,16 +523,26 @@ class MythicDatabase:
         try:
             cur = self.conn.cursor()
 
-            cur.execute("""
-                DELETE FROM PLAYER_TALENT
-                 WHERE PLAYER_REALM = %s
-                   AND PLAYER_NAME = %s
-                   AND SPEC_ID = %s
-            """, [
-                talent['player_realm'],
-                talent['player_name'],
-                talent['spec_id']
-            ])
+            if talent['spec_id'] == 0:
+                cur.execute("""
+                    DELETE FROM PLAYER_TALENT
+                    WHERE PLAYER_REALM = %s
+                    AND PLAYER_NAME = %s
+                """, [
+                    talent['player_realm'],
+                    talent['player_name']
+                ])
+            else:
+                cur.execute("""
+                    DELETE FROM PLAYER_TALENT
+                    WHERE PLAYER_REALM = %s
+                    AND PLAYER_NAME = %s
+                    AND SPEC_ID = %s
+                """, [
+                    talent['player_realm'],
+                    talent['player_name'],
+                    talent['spec_id']
+                ])
 
             cur.execute("""
                 INSERT INTO PLAYER_TALENT

@@ -25,6 +25,10 @@ class CollectPlayerBot(BaseBot):
 
     def update_player_runs(self, realm, realm_slug, character_name):
         profile = self.api.bn_request(f"/profile/wow/character/{realm_slug}/{character_name}/mythic-keystone-profile", token=True, namespace="profile")
+        if isinstance(profile, int):
+            return
+        if 'seasons' not in profile:
+            return
         for season in profile['seasons']:
             href = season['key']['href']
             season_res = self.api.bn_request(href, token=True)
@@ -46,7 +50,7 @@ class CollectPlayerBot(BaseBot):
         talents = self.api.bn_request(f"/profile/wow/character/{realm_slug}/{character_name}/specializations", token=True, namespace="profile")
         if talents is None:
             return
-        if type(talents) is int:
+        if isinstance(talents, int):
             self.db.update_player_talent({
                 'player_realm': realm,
                 'player_name': character_name,
@@ -107,6 +111,7 @@ class CollectPlayerBot(BaseBot):
             now_ts = int(datetime.now().timestamp() * 1000)
 
             now_ts2 = now_ts
+            update_cnt = 0
             while now_ts2 - now_ts < 300_000:
                 p = self.db.next_update_player()
                 if p is None:
@@ -114,9 +119,10 @@ class CollectPlayerBot(BaseBot):
 
                 self.update_player(p['realm'], p['name'])
                 now_ts2 = int(datetime.now().timestamp() * 1000)
+                update_cnt += 1
 
             now_ts2 = int(datetime.now().timestamp() * 1000)
-            logger.info(f'collected in {now_ts2 - now_ts} ms')
+            logger.info(f'collected in {now_ts2 - now_ts} ms, {update_cnt} player updated.')
         except Exception as e:
             self.print_error(e)
 

@@ -36,6 +36,7 @@
 
         var app = angular.module('MyApp', ['ngMaterial']);
         app.controller('MyController', MyController);
+        var graph2d
 
         function MyController($scope, $http, $timeout) {
             $scope.characterName = ''
@@ -43,7 +44,7 @@
             $scope.servers = {}
             $scope.serverNames = []
             $scope.periodStart = 885
-            $scope.periodEnd = 896
+            $scope.periodEnd = 897
 
             $http({
                 method: 'GET',
@@ -103,10 +104,10 @@
                 if ($scope.items.length > 0) {
                     period = Math.max.apply(null, $scope.items.map(it => it.x)) + 1
                 }
-                if (period > $scope.periodEnd) {
+                if ($scope.items.length == 0) {
                     var container = document.getElementById('timeline')
                     container.innerHTML = ''
-                    var graph2d = new vis.Graph2d(container, $scope.items, $scope.groups, {
+                    graph2d = new vis.Graph2d(container, $scope.items, $scope.groups, {
                         style: 'bar',
                         stack: true,
                         legend: true,
@@ -128,9 +129,12 @@
                                 }
                             }
                         },
-                        height: 900
+                        height: 900,
+                        start: $scope.periodStart - 1,
+                        end: $scope.periodEnd + 1
                     })
-                    graph2d.setWindow($scope.periodStart - 1, $scope.periodEnd + 1)
+                }
+                if (period > $scope.periodEnd) {
                     return
                 }
 
@@ -183,6 +187,20 @@
                             }
                         })
                     }
+                    graph2d.setOptions({
+                        dataAxis: {
+                            icons: true,
+                            left: {
+                                range: {
+                                    min: 0,
+                                    max: Math.ceil(Math.max.apply(null, $scope.items.filter(it => it.group == '0').map(it => it.y)) / 100) * 100 + 200
+                                }
+                            }
+                        }
+                    })
+                    graph2d.setItems($scope.items)
+                    graph2d.setGroups($scope.groups)
+                    graph2d.redraw()
                     $timeout($scope.search, 10)
                 }).catch(function () {
                 })

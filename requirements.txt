@@ -7,7 +7,6 @@ chardet>=3.0.4
 charset-normalizer>=2.0.10
 click>=7.1.2
 cryptography>=39.0.1
-cx-Oracle>=8.3.0
 decorator>=5.1.1
 dnspython>=1.16.0
 docopt>=0.6.2
