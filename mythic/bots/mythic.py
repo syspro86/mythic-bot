@@ -114,7 +114,40 @@ class MythicBot(BaseBot):
         ts_str2 = datetime.fromtimestamp(
             completed_timestamp / 1000).strftime('%Y-%m-%d %H:%M')
 
-        record_id = f'{ts_str}_{dungeon_name}_{keystone_level}_{period}_{completed_timestamp}'
+        def convert_member(member):
+            try:
+                m = {}
+                m['name'] = member['profile']['name']
+                rid = member['profile']['realm']['id']
+                m['realm'] = self.realm_cache[rid]['name']
+                if 'specialization' in member:
+                    m['spec'] = member['specialization']['id']
+                    spec = m['spec']
+                    spec = self.spec_cache[spec]
+                    m['className'] = spec['playable_class']['name']
+                    m['specName'] = spec['name']
+                    m['role'] = spec['role']['type']
+                else:
+                    m['spec'] = -1
+                    m['className'] = '알수없음'
+                    m['specName'] = ''
+                    m['role'] = 'UNKNOWN'
+                return m
+            except KeyError as key_error:
+                logger.info(str(key_error))
+                self.telegram.send_message(
+                    text=f'failed to convert member data {json.dumps(member)}')
+                raise key_error
+        record['members'] = map(convert_member, rec['members'])
+
+        role_names = ['TANK', 'HEALER', 'DAMAGE', 'UNKNOWN']
+        record['members'] = sorted(record['members'], key=lambda r: (
+            role_names.index(r['role']), r['spec'], r['realm'], r['name']))
+        
+        record_id = f'{ts_str}_{dungeon_name}_{keystone_level}_{period}_{completed_timestamp}_'
+        for mem in record['members']:
+            record_id += mem['realm'][0] + mem['name'][0]
+
         record['_id'] = record_id
         if record_id in self.inserted_id_set:
             return
@@ -141,35 +174,7 @@ class MythicBot(BaseBot):
                 record['keystone_upgrade'] = max(
                     record['keystone_upgrade'], ku['upgrade_level'])
 
-        def convert_member(member):
-            try:
-                m = {}
-                m['name'] = member['profile']['name']
-                rid = member['profile']['realm']['id']
-                m['realm'] = self.realm_cache[rid]['name']
-                if 'specialization' in member:
-                    m['spec'] = member['specialization']['id']
-                    spec = m['spec']
-                    spec = self.spec_cache[spec]
-                    m['className'] = spec['playable_class']['name']
-                    m['specName'] = spec['name']
-                    m['role'] = spec['role']['type']
-                else:
-                    m['spec'] = -1
-                    m['className'] = '알수없음'
-                    m['specName'] = ''
-                    m['role'] = 'UNKNOWN'
-                return m
-            except KeyError as e:
-                logger.info(str(e))
-                self.telegram.send_message(
-                    text=f'failed to convert member data {json.dumps(member)}')
-                raise e
-        record['members'] = map(convert_member, rec['members'])
 
-        role_names = ['TANK', 'HEALER', 'DAMAGE', 'UNKNOWN']
-        record['members'] = sorted(record['members'], key=lambda r: (
-            role_names.index(r['role']), r['spec']))
 
         try:
             if self.db.insert_record(record):
