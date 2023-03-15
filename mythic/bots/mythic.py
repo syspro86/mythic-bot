@@ -43,6 +43,14 @@ class MythicBot(BaseBot):
                     'realm_name': realm_name
                 })
 
+            self.connected_realms = []
+            connected_realms = self.api.bn_request(
+                "/data/wow/connected-realm/index", token=True, namespace="dynamic")
+            for realm in connected_realms['connected_realms']:
+                href = realm['href']
+                realm = self.api.bn_request(href, token=True)
+                self.connected_realms.append(realm['id'])
+
             dungeons = self.api.bn_request(
                 "/data/wow/mythic-keystone/dungeon/index", token=True, namespace="dynamic")
             self.dungeon_cache = {}
@@ -306,9 +314,11 @@ class MythicBot(BaseBot):
                 if self.end_timestamp < now_ts:
                     return
 
-            for did in self.dungeon_cache.keys():
-                logger.info(f"{self.dungeon_cache[did]['name']} ({did})")
-                for rid in self.realm_cache.keys():
+            for rid in self.connected_realms:
+                leaderboards = self.api.bn_request(f"/data/wow/connected-realm/{rid}/mythic-leaderboard/index", token=True, namespace="dynamic")
+                for leaderboard in leaderboards['current_leaderboards']:
+                    did = leaderboard['id']
+                    logger.info(f"{self.realm_cache[rid]['name']} {self.dungeon_cache[did]['name']} ({did})")
                     self.get_leaderboard(
                         rid, did, self.current_period)
 
