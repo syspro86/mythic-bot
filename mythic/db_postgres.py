@@ -119,11 +119,23 @@ class MythicDatabase:
                 (DUNGEON_ID, DUNGEON_NAME, ZONE, UPGRADE_1, UPGRADE_2, UPGRADE_3)
                 VALUES
                 (%s, %s, %s, %s, %s, %s)
-                ON CONFLICT (DUNGEON_ID) DO NOTHING
-            """, [ dungeon['id'], dungeon['name'], dungeon['zone']['slug'],
+                ON CONFLICT (DUNGEON_ID) DO UPDATE
+                SET DUNGEON_NAME = %s,
+                ZONE = %s,
+                UPGRADE_1 = %s,
+                UPGRADE_2 = %s,
+                UPGRADE_3 = %s
+            """, [ dungeon['id'],
+                  dungeon['name'],
+                  dungeon['zone']['slug'],
                   list(filter(lambda d: d['upgrade_level'] == 1, dungeon['keystone_upgrades']))[0]['qualifying_duration'],
                   list(filter(lambda d: d['upgrade_level'] == 2, dungeon['keystone_upgrades']))[0]['qualifying_duration'],
                   list(filter(lambda d: d['upgrade_level'] == 3, dungeon['keystone_upgrades']))[0]['qualifying_duration'],
+                  dungeon['name'],
+                  dungeon['zone']['slug'],
+                  list(filter(lambda d: d['upgrade_level'] == 1, dungeon['keystone_upgrades']))[0]['qualifying_duration'],
+                  list(filter(lambda d: d['upgrade_level'] == 2, dungeon['keystone_upgrades']))[0]['qualifying_duration'],
+                  list(filter(lambda d: d['upgrade_level'] == 3, dungeon['keystone_upgrades']))[0]['qualifying_duration']
             ])
 
             self.conn.commit()
@@ -532,27 +544,20 @@ class MythicDatabase:
                     talent['player_realm'],
                     talent['player_name']
                 ])
-            else:
-                cur.execute("""
-                    DELETE FROM PLAYER_TALENT
-                    WHERE PLAYER_REALM = %s
-                    AND PLAYER_NAME = %s
-                    AND SPEC_ID = %s
-                """, [
-                    talent['player_realm'],
-                    talent['player_name'],
-                    talent['spec_id']
-                ])
 
             cur.execute("""
                 INSERT INTO PLAYER_TALENT
                 (PLAYER_REALM, PLAYER_NAME, SPEC_ID, TALENT_CODE, LAST_UPDATE_TS)
                 VALUES(%s, %s, %s, %s, %s)
-                ON CONFLICT (PLAYER_REALM, PLAYER_NAME, SPEC_ID) DO NOTHING
+                ON CONFLICT (PLAYER_REALM, PLAYER_NAME, SPEC_ID) DO UPDATE
+                SET TALENT_CODE = %s,
+                LAST_UPDATE_TS = %s
             """, [
                 talent['player_realm'],
                 talent['player_name'],
                 talent['spec_id'],
+                talent['talent_code'],
+                talent['last_update_ts'],
                 talent['talent_code'],
                 talent['last_update_ts']
             ])
@@ -561,10 +566,14 @@ class MythicDatabase:
                 INSERT INTO PLAYER_TALENT_SLOT
                 (TALENT_CODE, TALENT_ID, TALENT_RANK, TALENT_NAME)
                 VALUES(%s, %s, %s, %s)
-                ON CONFLICT (TALENT_CODE, TALENT_ID) DO NOTHING
+                ON CONFLICT (TALENT_CODE, TALENT_ID) DO UPDATE
+                SET TALENT_RANK = %s,
+                TALENT_NAME = %s
             """, list(map(lambda s: (
                 s['talent_code'],
                 s['talent_id'],
+                s['talent_rank'],
+                s['talent_name'],
                 s['talent_rank'],
                 s['talent_name']
             ), slots)))
