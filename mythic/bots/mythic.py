@@ -300,8 +300,6 @@ class MythicBot(BaseBot):
 
     def on_schedule(self):
         try:
-            self.db.connect()
-
             start_ts = int(datetime.now().timestamp() * 1000)
             if self.end_timestamp < start_ts:
                 self.need_init = True
@@ -313,6 +311,8 @@ class MythicBot(BaseBot):
                 # 현재 시간에 맞는 period가 없음.
                 if self.end_timestamp < start_ts:
                     return
+
+            self.db.connect()
 
             for rid in self.connected_realms:
                 leaderboards = self.api.bn_request(f"/data/wow/connected-realm/{rid}/mythic-leaderboard/index", token=True, namespace="dynamic")
