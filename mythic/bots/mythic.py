@@ -220,7 +220,7 @@ class MythicBot(BaseBot):
         self.update_player_talent(realm, realm_slug, character_name)
 
     def update_player_runs(self, realm, realm_slug, character_name):
-        profile = self.api.bn_request(f"/profile/wow/character/{realm_slug}/{character_name}/mythic-keystone-profile", token=True, namespace="profile")
+        profile = self.api.bn_request(f"/profile/wow/character/{realm_slug}/{character_name.lower()}/mythic-keystone-profile", token=True, namespace="profile")
         if isinstance(profile, int):
             return
         if 'seasons' not in profile:
@@ -243,7 +243,7 @@ class MythicBot(BaseBot):
                 self.insert_record(board, run, run['dungeon']['id'])
                              
     def update_player_talent(self, realm, realm_slug, character_name):
-        talents = self.api.bn_request(f"/profile/wow/character/{realm_slug}/{character_name}/specializations", token=True, namespace="profile")
+        talents = self.api.bn_request(f"/profile/wow/character/{realm_slug}/{character_name.lower()}/specializations", token=True, namespace="profile")
         if talents is None or isinstance(talents, int):
             self.db.update_player_talent({
                 'player_realm': realm,
