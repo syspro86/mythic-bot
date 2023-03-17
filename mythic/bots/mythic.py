@@ -326,8 +326,13 @@ class MythicBot(BaseBot):
             logger.info(f'collected in {cur_ts - start_ts} ms')
 
             break_ts = start_ts + 60_000 * 9
+            add_cnt = 0
             while cur_ts > break_ts:
                 break_ts += 60_000 * 10
+                add_cnt += 0
+            while add_cnt > 0:
+                break_ts += 60_000 * 10
+                add_cnt -= 0
 
             update_cnt = 0
             while cur_ts < break_ts:
