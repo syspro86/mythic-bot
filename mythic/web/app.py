@@ -5,7 +5,6 @@ from mythic.logger import logger
 from mythic.db import MythicDatabase
 from mythic.wowapi import WowApi
 from mythic.bots.base import BaseBot
-from mythic.bots.player import CollectPlayerBot
 from datetime import datetime
 
 app = Flask(__name__, static_url_path="", static_folder="static")
