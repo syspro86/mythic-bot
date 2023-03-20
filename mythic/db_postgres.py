@@ -146,6 +146,7 @@ class MythicDatabase:
         finally:
             cur.close()
 
+
     def find_mythic_rating(self, realm, name, period):
         if self.conn is None:
             return []
@@ -176,6 +177,44 @@ class MythicDatabase:
                 "dungeon_name": str(r[1]),
                 "mythic_rating": float(r[2]),
                 "affix": int(r[3])
+            }, rows))
+        finally:
+            cur.close()
+
+
+    def find_mythic_rating_list(self, realm, name):
+        if self.conn is None:
+            return []
+
+        try:
+            cur = self.conn.cursor()
+            cur.execute("""
+            SELECT DUNGEON_ID, DUNGEON_NAME, MYTHIC_RATING, PERIOD
+            FROM (
+            SELECT DUNGEON_ID,
+            (SELECT DUNGEON_NAME FROM MYTHIC_DUNGEON WHERE DUNGEON_ID = MR.DUNGEON_ID) AS DUNGEON_NAME,
+            PERIOD,
+            MYTHIC_RATING,
+            ROW_NUMBER() OVER (PARTITION BY DUNGEON_ID, PERIOD ORDER BY MYTHIC_RATING DESC) AS RN
+            FROM MYTHIC_RECORD MR, MYTHIC_RECORD_PLAYER MRP 
+            WHERE MRP.PLAYER_REALM = %s
+            AND MRP.PLAYER_NAME = %s
+            AND MR.RECORD_ID = MRP.RECORD_ID
+            AND MR.MYTHIC_RATING IS NOT NULL
+            ) RR
+            WHERE RR.RN = 1
+            ORDER BY PERIOD, DUNGEON_ID
+            """, [realm, name])
+
+            rows = cur.fetchall()
+            if not rows:
+                return []
+
+            return list(map(lambda r: {
+                "dungeon_id": int(r[0]),
+                "dungeon_name": str(r[1]),
+                "mythic_rating": float(r[2]),
+                "period": int(r[3])
             }, rows))
         finally:
             cur.close()
@@ -326,6 +365,25 @@ class MythicDatabase:
                 "period": int(r[0]),
                 "start_timestamp": int(r[1]),
                 "end_timestamp": int(r[2])
+            }
+        except Exception as e:
+            logger.info(str(e))
+            traceback.print_exc()
+        finally:
+            cur.close()
+        return None
+    
+    def find_period_minmax(self):
+        try:
+            cur = self.conn.cursor()
+            cur.execute("""
+                SELECT MIN(PERIOD), MAX(PERIOD) FROM MYTHIC_PERIOD
+            """)
+            
+            r = cur.fetchone()
+            return {
+                "min": int(r[0]),
+                "max": int(r[1])
             }
         except Exception as e:
             logger.info(str(e))
