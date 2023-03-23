@@ -278,14 +278,18 @@ class MythicBot(BaseBot):
                         'talent_code': talent_code,
                         'talent_id': ctal['id'],
                         'talent_rank': ctal['rank'],
-                        'talent_name': ctal['tooltip']['talent']['name']
+                        'talent_name': ctal['tooltip']['talent']['name'],
+                        'tooltip_id': ctal['tooltip']['talent']['id'],
+                        'spell_id': ctal['tooltip']['spell_tooltip']['spell']['name']
                     })
                 for stal in loadout['selected_spec_talents']:
                     slots.append({
                         'talent_code': talent_code,
                         'talent_id': stal['id'],
                         'talent_rank': stal['rank'],
-                        'talent_name': stal['tooltip']['talent']['name']
+                        'talent_name': stal['tooltip']['talent']['name'],
+                        'tooltip_id': stal['tooltip']['talent']['id'],
+                        'spell_id': stal['tooltip']['spell_tooltip']['spell']['name']
                     })
                 
                 self.db.update_player_talent(talent, slots)

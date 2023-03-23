@@ -622,18 +622,24 @@ class MythicDatabase:
 
             cur.executemany("""
                 INSERT INTO PLAYER_TALENT_SLOT
-                (TALENT_CODE, TALENT_ID, TALENT_RANK, TALENT_NAME)
-                VALUES(%s, %s, %s, %s)
+                (TALENT_CODE, TALENT_ID, TALENT_RANK, TALENT_NAME, TOOLTIP_ID, SPELL_ID)
+                VALUES(%s, %s, %s, %s, %s, %s)
                 ON CONFLICT (TALENT_CODE, TALENT_ID) DO UPDATE
                 SET TALENT_RANK = %s,
-                TALENT_NAME = %s
+                TALENT_NAME = %s,
+                TOOLTIP_ID = %s,
+                SPELL_ID = %s
             """, list(map(lambda s: (
                 s['talent_code'],
                 s['talent_id'],
                 s['talent_rank'],
                 s['talent_name'],
+                s['tooltip_id'],
+                s['spell_id'],
                 s['talent_rank'],
-                s['talent_name']
+                s['talent_name'],
+                s['tooltip_id'],
+                s['spell_id']
             ), slots)))
             
             self.conn.commit()
