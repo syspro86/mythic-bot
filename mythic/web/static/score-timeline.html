@@ -15,7 +15,7 @@
 				name="server" ng-model="server">
 				<option ng-repeat="server in servers" value="{{server}}">{{server}}</option>
 			</select>
-			<md-button ng-click="search(true)" class="md-primary md-raised">조회</md-button>
+			<md-button ng-disabled="ready != 1" ng-click="search(true)" class="md-primary md-raised">조회</md-button>
 		</section>
 
 		<section flex layout="row">
@@ -43,8 +43,6 @@
             $scope.server = ''
             $scope.servers = {}
             $scope.serverNames = []
-            $scope.periodStart = 885
-            $scope.periodEnd = 897
 
             $http({
                 method: 'GET',
@@ -64,22 +62,16 @@
                     }
                     $scope.characterName = window.localStorage.getItem('relation_character')
                     if (run > 0) {
-                        $scope.minimumRun = parseIntun
+                        $scope.minimumRun = run
                     }
                 }
+                $scope.ready |= 1
             }).catch(function () {
             })
 
-            $scope.items = []
-            $scope.groups = [{
-                id: '0',
-                content: "total",
-                options: {
-                    excludeFromStacking: true
-                }
-            }]
 
-            $scope.search = function (force) {
+
+            $scope.search = function () {
                 if ($scope.characterName == '') {
                     return
                 }
@@ -90,118 +82,114 @@
                     window.localStorage.setItem('relation_character', $scope.characterName)
                 }
 
-                let period = $scope.periodStart
-                if (force) {
-                    $scope.items = []
-                    $scope.groups = [{
+
+
+                $http({
+                    method: 'GET',
+                    url: 'char/mythic_rating/' + encodeURI($scope.server) + '/' + encodeURI($scope.characterName),
+                }).then(function (resp) {
+                    console.log(resp.data)
+
+                    let period = 0
+                    let dungeonScore = {}
+                    let minPeriod = 0
+                    let maxPeriod = 0
+
+                    let items = []
+                    let groups = [{
                         id: '0',
                         content: "total",
                         options: {
                             excludeFromStacking: true
                         }
                     }]
-                }
-                if ($scope.items.length > 0) {
-                    period = Math.max.apply(null, $scope.items.map(it => it.x)) + 1
-                }
-                if ($scope.items.length == 0) {
-                    var container = document.getElementById('timeline')
-                    container.innerHTML = ''
-                    graph2d = new vis.Graph2d(container, $scope.items, $scope.groups, {
-                        style: 'bar',
-                        stack: true,
-                        legend: true,
-                        min: $scope.periodStart - 1,
-                        max: $scope.periodEnd + 1,
-                        // barChart: { width: 50, align: 'center' },
-                        drawPoints: {
-                            onRender: function(item, group, grap2d) {
-                                return item.label != null;
-                            },
-                            style: 'circle'
-                        },                        
-                        dataAxis: {
-                            icons: true,
-                            left: {
-                                range: {
-                                    min: 0,
-                                    max: Math.ceil(Math.max.apply(null, $scope.items.filter(it => it.group == '0').map(it => it.y)) / 100) * 100 + 200
+
+                    const addSummary = () => {
+                        let score = 0
+                        for (let did in dungeonScore) {
+                            const arr = dungeonScore[did]
+                            const dscore = Math.max(arr[0], arr[1]) * 1.5 + Math.min(arr[0], arr[1]) * 0.5
+                            score += dscore
+
+                            items.push({
+                                x: period,
+                                y: dscore,
+                                group: String(did),
+                                label: {
+                                    content: String(parseInt(dscore)),
+                                    xOffset: -15,
+                                    yOffset: 20
                                 }
-                            }
-                        },
-                        height: 900,
-                        start: $scope.periodStart - 1,
-                        end: $scope.periodEnd + 1
-                    })
-                }
-                if (period > $scope.periodEnd) {
-                    return
-                }
-
-                $http({
-                    method: 'GET',
-                    url: 'char/mythic_rating/' + encodeURI($scope.server) + '/' + encodeURI($scope.characterName) + '/' + period,
-                }).then(function (resp) {
-                    console.log(resp.data)
-
-                    let dungeonScore = {}
-                    let score = 0
-                    resp.data.forEach(data => {
-                        if (!dungeonScore[data.dungeon_id]) {
-                            dungeonScore[data.dungeon_id] = []
+                            })
                         }
-                        dungeonScore[data.dungeon_id].push(data.mythic_rating)
-                        if (!($scope.groups.some(g => g.id == String(data.dungeon_id)))) {
-                            $scope.groups.push({
+                        if (score > 0) {
+                            items.push({
+                                x: period,
+                                y: score,
+                                group: '0',
+                                label: {
+                                    content: String(parseInt(score)),
+                                    xOffset: -20,
+                                    yOffset: -20
+                                }
+                            })
+                        }
+                    }
+
+                    
+                    resp.data.forEach(data => {
+                        if (data.period != period) {
+                            if (period == 0) {
+                                minPeriod = data.period
+                            } else {
+                                addSummary()
+                            }
+                            period = data.period
+                            maxPeriod = period
+                        }
+                        if (!dungeonScore[data.dungeon_id]) {
+                            dungeonScore[data.dungeon_id] = [0, 0]
+                        }
+                        dungeonScore[data.dungeon_id][period % 2] = Math.max(dungeonScore[data.dungeon_id][period % 2], data.mythic_rating)
+                        if (!(groups.some(g => g.id == String(data.dungeon_id)))) {
+                            groups.push({
                                 id: String(data.dungeon_id),
                                 content: data.dungeon_name
                             })
                         }
                     })
-                    for (let did in dungeonScore) {
-                        const arr = dungeonScore[did].sort().reverse()
-                        const dscore = arr[0] * 1.5 + (arr.length > 1 ? arr[1] * 0.5 : 0)
-                        score += dscore
-
-                        $scope.items.push({
-                            x: period,
-                            y: dscore,
-                            group: String(did),
-                            label: {
-                                content: String(parseInt(dscore)),
-                                xOffset: -20,
-                                yOffset: 20
-                            }
-                        })
-                    }
-
-                    if (score >= 0) {
-                        $scope.items.push({
-                            x: period,
-                            y: score,
-                            group: '0',
-                            label: {
-                                content: String(parseInt(score)),
-                                xOffset: -20,
-                                yOffset: -20
-                            }
-                        })
-                    }
-                    graph2d.setOptions({
-                        dataAxis: {
-                            icons: true,
-                            left: {
-                                range: {
-                                    min: 0,
-                                    max: Math.ceil(Math.max.apply(null, $scope.items.filter(it => it.group == '0').map(it => it.y)) / 100) * 100 + 200
+                    addSummary()
+                    if (items.length >= 0) {
+                        var container = document.getElementById('timeline')
+                        container.innerHTML = ''
+                        graph2d = new vis.Graph2d(container, items, groups, {
+                            style: 'bar',
+                            stack: true,
+                            legend: true,
+                            min: minPeriod - 1,
+                            max: maxPeriod + 1,
+                            start: minPeriod - 1,
+                            end: maxPeriod + 1,
+                            // zoomable: false,
+                            // barChart: { width: 50, align: 'center' },
+                            drawPoints: {
+                                onRender: function(item, group, grap2d) {
+                                    return item.label != null;
+                                },
+                                style: 'circle'
+                            },                        
+                            dataAxis: {
+                                icons: true,
+                                left: {
+                                    range: {
+                                        min: 0,
+                                        max: Math.ceil(Math.max.apply(null, items.filter(it => it.group == '0').map(it => it.y)) / 100) * 100 + 200
+                                    }
                                 }
-                            }
-                        }
-                    })
-                    graph2d.setItems($scope.items)
-                    graph2d.setGroups($scope.groups)
-                    graph2d.redraw()
-                    $timeout($scope.search, 10)
+                            },
+                            height: 900
+                        })
+                    }
                 }).catch(function () {
                 })
             }

@@ -220,7 +220,7 @@ class MythicBot(BaseBot):
         self.update_player_talent(realm, realm_slug, character_name)
 
     def update_player_runs(self, realm, realm_slug, character_name):
-        profile = self.api.bn_request(f"/profile/wow/character/{realm_slug}/{character_name}/mythic-keystone-profile", token=True, namespace="profile")
+        profile = self.api.bn_request(f"/profile/wow/character/{realm_slug}/{character_name.lower()}/mythic-keystone-profile", token=True, namespace="profile")
         if isinstance(profile, int):
             return
         if 'seasons' not in profile:
@@ -243,7 +243,7 @@ class MythicBot(BaseBot):
                 self.insert_record(board, run, run['dungeon']['id'])
                              
     def update_player_talent(self, realm, realm_slug, character_name):
-        talents = self.api.bn_request(f"/profile/wow/character/{realm_slug}/{character_name}/specializations", token=True, namespace="profile")
+        talents = self.api.bn_request(f"/profile/wow/character/{realm_slug}/{character_name.lower()}/specializations", token=True, namespace="profile")
         if talents is None or isinstance(talents, int):
             self.db.update_player_talent({
                 'player_realm': realm,
@@ -278,14 +278,18 @@ class MythicBot(BaseBot):
                         'talent_code': talent_code,
                         'talent_id': ctal['id'],
                         'talent_rank': ctal['rank'],
-                        'talent_name': ctal['tooltip']['talent']['name']
+                        'talent_name': ctal['tooltip']['talent']['name'],
+                        'tooltip_id': ctal['tooltip']['talent']['id'],
+                        'spell_id': ctal['tooltip']['spell_tooltip']['spell']['id']
                     })
                 for stal in loadout['selected_spec_talents']:
                     slots.append({
                         'talent_code': talent_code,
                         'talent_id': stal['id'],
                         'talent_rank': stal['rank'],
-                        'talent_name': stal['tooltip']['talent']['name']
+                        'talent_name': stal['tooltip']['talent']['name'],
+                        'tooltip_id': stal['tooltip']['talent']['id'],
+                        'spell_id': stal['tooltip']['spell_tooltip']['spell']['id']
                     })
                 
                 self.db.update_player_talent(talent, slots)
@@ -300,10 +304,8 @@ class MythicBot(BaseBot):
 
     def on_schedule(self):
         try:
-            self.db.connect()
-
-            now_ts = int(datetime.now().timestamp() * 1000)
-            if self.end_timestamp < now_ts:
+            start_ts = int(datetime.now().timestamp() * 1000)
+            if self.end_timestamp < start_ts:
                 self.need_init = True
 
             if self.need_init:
@@ -311,8 +313,10 @@ class MythicBot(BaseBot):
                 self.inserted_id_set = []
 
                 # 현재 시간에 맞는 period가 없음.
-                if self.end_timestamp < now_ts:
+                if self.end_timestamp < start_ts:
                     return
+
+            self.db.connect()
 
             for rid in self.connected_realms:
                 leaderboards = self.api.bn_request(f"/data/wow/connected-realm/{rid}/mythic-leaderboard/index", token=True, namespace="dynamic")
@@ -322,21 +326,30 @@ class MythicBot(BaseBot):
                     self.get_leaderboard(
                         rid, did, self.current_period)
 
-            now_ts2 = int(datetime.now().timestamp() * 1000)
-            logger.info(f'collected in {now_ts2 - now_ts} ms')
+            cur_ts = int(datetime.now().timestamp() * 1000)
+            logger.info(f'collected in {cur_ts - start_ts} ms')
+
+            break_ts = start_ts + 60_000 * 9
+            add_cnt = 0
+            while cur_ts > break_ts:
+                break_ts += 60_000 * 10
+                add_cnt += 0
+            while add_cnt > 0:
+                break_ts += 60_000 * 10
+                add_cnt -= 0
 
             update_cnt = 0
-            while now_ts2 - now_ts < 60_000 * 9:
+            while cur_ts < break_ts:
                 p = self.db.next_update_player()
                 if p is None:
                     break
 
                 self.update_player(p['realm'], p['name'])
-                now_ts2 = int(datetime.now().timestamp() * 1000)
+                cur_ts = int(datetime.now().timestamp() * 1000)
                 update_cnt += 1
 
-            now_ts2 = int(datetime.now().timestamp() * 1000)
-            logger.info(f'collected in {now_ts2 - now_ts} ms, {update_cnt} player updated.')
+            cur_ts = int(datetime.now().timestamp() * 1000)
+            logger.info(f'collected in {cur_ts - start_ts} ms, {update_cnt} player updated.')
 
         except Exception as e:
             self.need_init = True

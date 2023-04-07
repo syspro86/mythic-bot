@@ -5,7 +5,6 @@ from mythic.logger import logger
 from mythic.db import MythicDatabase
 from mythic.wowapi import WowApi
 from mythic.bots.base import BaseBot
-from mythic.bots.player import CollectPlayerBot
 from datetime import datetime
 
 app = Flask(__name__, static_url_path="", static_folder="static")
@@ -345,11 +344,11 @@ def char_relation_realm_name(realm, name, run):
         return jsonify([])
 
 
-@app.route('/char/mythic_rating/<realm>/<name>/<period>')
+@app.route('/char/mythic_rating/<realm>/<name>')
 @using_db
-def char_mythicrating_realm_name(realm, name, period):
+def char_mythicrating_realm_name(realm, name):
     name = name[0:1].upper() + name[1:].lower()
-    records = util.db.find_mythic_rating(realm, name, int(period))
+    records = util.db.find_mythic_rating_list(realm, name)
     if len(records) > 0:
         return jsonify(records)
     else:
