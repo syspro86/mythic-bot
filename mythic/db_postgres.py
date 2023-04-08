@@ -717,7 +717,7 @@ class MythicDatabase:
 
         return []
     
-    def get_relation(self, name, realm, run):
+    def get_relation(self, name, realm, run, limit=100):
         if self.conn is None:
             return []
 
@@ -733,7 +733,8 @@ class MythicDatabase:
                 GROUP BY PLAYER_REALM, PLAYER_NAME
                 HAVING COUNT(1) >= %s
                 ORDER BY 3 DESC
-            """, [realm, name, int(run)])
+                LIMIT %s
+            """, [realm, name, int(run), limit])
 
             rows = cur.fetchall()
             if not rows:
