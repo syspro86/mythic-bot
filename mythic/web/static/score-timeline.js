@@ -52,12 +52,14 @@ export default {
                         const dscore = Math.max(arr[0], arr[1]) * 1.5 + Math.min(arr[0], arr[1]) * 0.5
                         score += dscore
 
+                        const dname = groups.find(g => g.id == String(did)).content
+
                         items.push({
                             x: periodTimestamp,
                             y: dscore,
                             group: String(did),
                             label: {
-                                content: String(parseInt(dscore)),
+                                content: String(parseInt(dscore)) + '(' + dname.substring(0, 1) + ')',
                                 xOffset: -15,
                                 yOffset: 20
                             }
@@ -76,7 +78,6 @@ export default {
                         })
                     }
                 }
-
                 
                 data.forEach(data => {
                     if (data.period != period) {
@@ -106,7 +107,7 @@ export default {
                     const container = document.getElementById('timeline')
                     container.innerHTML = ''
                     const graph2d = new vis.Graph2d(container, items, groups, {
-                        style: 'bar',
+                        //.style: 'bar',
                         stack: true,
                         legend: true,
                         locale: 'en',
