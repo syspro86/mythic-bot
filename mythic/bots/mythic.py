@@ -73,6 +73,17 @@ class MythicBot(BaseBot):
             seasons = self.api.bn_request(
                 "/data/wow/mythic-keystone/season/index", token=True, namespace="dynamic")
             self.current_season = seasons['current_season']['id']
+            for season in seasons['seasons']:
+                season_id = season['id']
+                season = self.api.bn_request(
+                    f"/data/wow/mythic-keystone/season/{season_id}", token=True, namespace="dynamic")
+                season_name = season['season_name']
+                start_timestamp = season['start_timestamp']
+                end_timestamp = season['end_timestamp'] if 'end_timestamp' in season else None
+                periods = []
+                for period in season['periods']:
+                    periods.append(period['id'])
+                self.db.update_season(season_id, season_name, start_timestamp, end_timestamp, periods)
 
             periods = self.api.bn_request(
                 "/data/wow/mythic-keystone/period/index", token=True, namespace="dynamic")

@@ -365,6 +365,44 @@ class MythicDatabase:
         finally:
             cur.close()
 
+    def update_season(self, season_id, season_name, start_timestamp, end_timestamp, periods):
+        try:
+            cur = self.conn.cursor()
+            cur.execute("""
+                INSERT INTO MYTHIC_SEASON
+                (SEASON, SEASON_NAME, START_TIMESTAMP, END_TIMESTAMP)
+                VALUES (%s, %s, %s, %s)
+                ON CONFLICT (SEASON) DO UPDATE
+                SET SEASON_NAME = %s,
+                START_TIMESTAMP = %s,
+                END_TIMESTAMP = %s
+            """, [
+                season_id,
+                season_name, start_timestamp, end_timestamp,
+                season_name, start_timestamp, end_timestamp
+            ])
+
+            cur.execute("""
+                DELETE FROM MYTHIC_SEASON_PERIOD
+                WHERE SEASON = %s
+            """, [ season_id ])
+
+            cur.executemany("""
+                INSERT INTO MYTHIC_SEASON_PERIOD
+                (SEASON, PERIOD)
+                VALUES (%s, %s)
+            """, list(map(lambda p: [ season_id, p ], periods)))
+
+            self.conn.commit()
+            return cur.rowcount > 0
+        except Exception as e:
+            self.conn.rollback()
+            logger.info(str(e))
+            traceback.print_exc()
+        finally:
+            cur.close()
+        return False
+
     def find_period(self, period=None, timestamp=None):
         try:
             cur = self.conn.cursor()
