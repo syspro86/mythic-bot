@@ -307,6 +307,28 @@ class MythicDatabase:
             cur.close()
         return []
     
+    def find_all_realm(self):
+        try:
+            cur = self.conn.cursor()
+            cur.execute("""
+                SELECT REALM_ID, REALM_SLUG, REALM_NAME FROM PLAYER_REALM
+            """)
+            rows = cur.fetchall()
+            if not rows:
+                return []
+            
+            return list(map(lambda r: {
+                'realm_id': int(r[0]),
+                'realm_slug': str(r[1]),
+                'realm_name': str(r[2]),
+            }, rows))
+        except Exception as e:
+            logger.info(str(e))
+            traceback.print_exc()
+        finally:
+            cur.close()
+        return None
+
     def find_realm_slug(self, realm_name):
         try:
             cur = self.conn.cursor()
