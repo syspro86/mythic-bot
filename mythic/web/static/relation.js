@@ -1,4 +1,5 @@
 import Login from './login.js'
+import Menu from './menu.js'
 
 export default {
     data() {
@@ -15,7 +16,7 @@ export default {
         }
     },
     components: {
-        Login
+        Login, Menu
     },
     methods: {
         search() {
@@ -130,6 +131,7 @@ export default {
             <v-col>
                 <v-btn class="ma-1" variant="outlined" @click="search">검색</v-btn>
                 <v-btn class="ma-1" variant="outlined" @click="showOption=!showOption">{{ showOption ? "검색 조건 닫기" : "검색 조건 열기" }}</v-btn>
+                <Menu/>
                 <Login/>
             </v-col>
         </v-row>

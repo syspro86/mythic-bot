@@ -1,4 +1,5 @@
 import Login from './login.js'
+import Menu from './menu.js'
 
 export default {
     data() {
@@ -11,7 +12,7 @@ export default {
         }
     },
     components: {
-        Login
+        Login, Menu
     },
     methods: {
         search() {
@@ -31,8 +32,9 @@ export default {
                 
                 let period = 0
                 let dungeonScore = {}
-                let minPeriod = 0
-                let maxPeriod = 0
+                let minTimestamp = 0
+                let maxTimestamp = 0
+                let periodTimestamp = 0
 
                 let items = []
                 let groups = [{
@@ -51,7 +53,7 @@ export default {
                         score += dscore
 
                         items.push({
-                            x: period,
+                            x: periodTimestamp,
                             y: dscore,
                             group: String(did),
                             label: {
@@ -63,7 +65,7 @@ export default {
                     }
                     if (score > 0) {
                         items.push({
-                            x: period,
+                            x: periodTimestamp,
                             y: score,
                             group: '0',
                             label: {
@@ -79,12 +81,13 @@ export default {
                 data.forEach(data => {
                     if (data.period != period) {
                         if (period == 0) {
-                            minPeriod = data.period
+                            minTimestamp = data.timestamp
                         } else {
                             addSummary()
                         }
                         period = data.period
-                        maxPeriod = period
+                        periodTimestamp = data.timestamp
+                        maxTimestamp = data.timestamp
                     }
                     if (!dungeonScore[data.dungeon_id]) {
                         dungeonScore[data.dungeon_id] = [0, 0]
@@ -99,16 +102,18 @@ export default {
                 })
                 addSummary()
                 if (items.length >= 0) {
-                    var container = document.getElementById('timeline')
+                    const timelineMargin = 7*24*3600*1000
+                    const container = document.getElementById('timeline')
                     container.innerHTML = ''
-                    graph2d = new vis.Graph2d(container, items, groups, {
+                    const graph2d = new vis.Graph2d(container, items, groups, {
                         style: 'bar',
                         stack: true,
                         legend: true,
-                        min: minPeriod - 1,
-                        max: maxPeriod + 1,
-                        start: minPeriod - 1,
-                        end: maxPeriod + 1,
+                        locale: 'en',
+                        min: minTimestamp - timelineMargin,
+                        max: maxTimestamp + timelineMargin,
+                        start: minTimestamp - timelineMargin,
+                        end: maxTimestamp + timelineMargin,
                         // zoomable: false,
                         // barChart: { width: 50, align: 'center' },
                         drawPoints: {
@@ -146,7 +151,7 @@ export default {
     mounted() {
         fetch('form/realms').then(async resp => {
             this.servers = await resp.json()
-            for (var key in this.servers) {
+            for (let key in this.servers) {
                 this.serverNames.push(this.servers[key]);
             }
             if (this.server == '') {
@@ -173,6 +178,7 @@ export default {
             <v-sheet>
             <v-btn class="ma-1" variant="outlined" @click="search">검색</v-btn>
             <v-btn class="ma-1" variant="outlined" @click="showOption=!showOption">{{ showOption ? "검색 조건 닫기" : "검색 조건 열기" }}</v-btn>
+            <Menu/>
             <Login/>
             </v-sheet>
         </v-col>
