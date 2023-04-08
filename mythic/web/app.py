@@ -350,6 +350,12 @@ def char_mythicrating_realm_name(realm, name):
     name = name[0:1].upper() + name[1:].lower()
     records = util.db.find_mythic_rating_list(realm, name)
     if len(records) > 0:
+        periods = {}
+        for r in records:
+            if r['period'] not in periods:
+                p = util.db.find_period(period=r['period'])
+                periods[r['period']] = p['start_timestamp']
+            r['timestamp'] = periods[r['period']]
         return jsonify(records)
     else:
         return jsonify([])
