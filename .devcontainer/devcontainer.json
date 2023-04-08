@@ -2,7 +2,13 @@
 // https://github.com/microsoft/vscode-dev-containers/tree/v0.134.1/containers/python-3
 {
 	"name": "Python 3",
-	"image": "mcr.microsoft.com/devcontainers/python:3.11",
+	"image": "mcr.microsoft.com/devcontainers/base:debian",
+	"features": {
+		"ghcr.io/devcontainers/features/node:1": {},
+		"ghcr.io/devcontainers/features/python:1": {
+			"version": "3.11"
+		},
+	},
 
 	// Add the IDs of extensions you want installed when the container is created.
 	"customizations": {
@@ -36,7 +42,7 @@
 	// "forwardPorts": [],
 
 	// Use 'postCreateCommand' to run commands after the container is created.
-	"postCreateCommand": "pip3 install --user -r requirements.txt",
+	"postCreateCommand": "bash .devcontainer/postCreateScript.sh",
 
 	// Uncomment to connect as a non-root user. See https://aka.ms/vscode-remote/containers/non-root.
 	// "remoteUser": "vscode"
