@@ -1,15 +1,22 @@
-from flask import Flask, render_template, request, jsonify, send_from_directory
+from flask import Flask, render_template, request, jsonify, send_from_directory, session
+from flask_session import Session
 from functools import wraps
-from mythic.config import MythicConfig
+from mythic.config import config
 from mythic.logger import logger
 from mythic.db import MythicDatabase
 from mythic.wowapi import WowApi
 from mythic.bots.base import BaseBot
 from datetime import datetime
+import redis
 
 app = Flask(__name__, static_url_path="", static_folder="static")
-
-config = MythicConfig()
+if config.REDIS_URL is not None and config.SESSION_SECRET is not None:
+    app.secret_key = config.SESSION_SECRET
+    app.config['SESSION_TYPE'] = 'redis'
+    app.config['SESSION_PERMANENT'] = False
+    app.config['SESSION_USE_SIGNER'] = True
+    app.config['SESSION_REDIS'] = redis.from_url(config.REDIS_URL)
+    server_session = Session(app)
 
 
 class WebUtil(BaseBot):

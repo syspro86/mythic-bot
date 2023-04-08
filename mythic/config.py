@@ -29,6 +29,8 @@ class MythicConfig:
         self.WEB_UI_URL = nvl('WEB_UI_URL')
         self.HASH_SALT_PREFIX = nvl('HASH_SALT_PREFIX')
         self.HASH_SALT_SUFFIX = nvl('HASH_SALT_SUFFIX')
+        self.SESSION_SECRET = nvl('SESSION_SECRET')
+        self.REDIS_URL = nvl('REDIS_URL')
 
 
 config = MythicConfig()
