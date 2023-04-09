@@ -136,6 +136,7 @@ class MythicBot(BaseBot):
         def convert_member(member):
             try:
                 m = {}
+                m['id'] = member['profile']['id']
                 m['name'] = member['profile']['name']
                 rid = member['profile']['realm']['id']
                 m['realm'] = self.realm_cache[rid]['name']
@@ -192,8 +193,6 @@ class MythicBot(BaseBot):
             if ku['qualifying_duration'] > duration:
                 record['keystone_upgrade'] = max(
                     record['keystone_upgrade'], ku['upgrade_level'])
-
-
 
         try:
             if self.db.insert_record(record):

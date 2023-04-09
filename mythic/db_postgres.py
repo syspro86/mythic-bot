@@ -35,7 +35,7 @@ class MythicDatabase:
         record = copy.deepcopy(record)
 
         players = list(
-            map(lambda m: (record['_id'], m['realm'], m['name'], m['spec'], m['className'], m['specName'], m['role']), record['members']))
+            map(lambda m: (record['_id'], m['realm'], m['name'], m['spec'], m['className'], m['specName'], m['role'], m['id']), record['members']))
         
         del record['members']
         rows = [(
@@ -56,7 +56,7 @@ class MythicDatabase:
                 "insert into public.mythic_record(record_id, season, period, dungeon_id, duration, completed_timestamp, keystone_level, keystone_upgrade, mythic_rating, json_text) values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)", rows)
 
             cur.executemany(
-                "insert into mythic_record_player(record_id, player_realm, player_name, spec_id, class_name, spec_name, role_name) values (%s, %s, %s, %s, %s, %s, %s)", players)
+                "insert into mythic_record_player(record_id, player_realm, player_name, spec_id, class_name, spec_name, role_name, player_id) values (%s, %s, %s, %s, %s, %s, %s, %s)", players)
 
             self.conn.commit()
             return True
