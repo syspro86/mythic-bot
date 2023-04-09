@@ -30,11 +30,13 @@ export default {
             fetch('char/mythic_rating/' + encodeURI(this.server) + '/' + encodeURI(this.characterName)).then(async resp => {
                 const data = await resp.json();
                 
+                let season = 0
                 let period = 0
                 let dungeonScore = {}
                 let minTimestamp = 0
                 let maxTimestamp = 0
                 let periodTimestamp = 0
+                const oneWeek = 7*24*3600*1000
 
                 let items = []
                 let groups = [{
@@ -57,10 +59,11 @@ export default {
                         items.push({
                             x: periodTimestamp,
                             y: dscore,
+                            end: periodTimestamp + oneWeek,
                             group: String(did),
                             label: {
                                 content: String(Math.round(dscore)) + '(' + dname.substring(0, 1) + ')',
-                                xOffset: -15,
+                                xOffset: 0,
                                 yOffset: 20
                             }
                         })
@@ -69,10 +72,11 @@ export default {
                         items.push({
                             x: periodTimestamp,
                             y: score,
+                            end: periodTimestamp + oneWeek,
                             group: '0',
                             label: {
                                 content: String(Math.round(score)),
-                                xOffset: -20,
+                                xOffset: 0,
                                 yOffset: -20
                             }
                         })
@@ -80,6 +84,10 @@ export default {
                 }
                 
                 data.forEach(data => {
+                    if (data.season != season) {
+                        dungeonScore = {}
+                        season = data.season
+                    }
                     if (data.period != period) {
                         if (period == 0) {
                             minTimestamp = data.timestamp
@@ -103,11 +111,11 @@ export default {
                 })
                 addSummary()
                 if (items.length >= 0) {
-                    const timelineMargin = 7*24*3600*1000
+                    const timelineMargin = oneWeek
                     const container = document.getElementById('timeline')
                     container.innerHTML = ''
                     const graph2d = new vis.Graph2d(container, items, groups, {
-                        //.style: 'bar',
+                        style: 'bar',
                         stack: true,
                         legend: true,
                         locale: 'en',

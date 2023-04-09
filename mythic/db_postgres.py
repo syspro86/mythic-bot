@@ -108,6 +108,33 @@ class MythicDatabase:
         finally:
             cur.close()
 
+    def find_dungeon(self, dungeon_id):
+        if self.conn is None:
+            return None
+        
+        try:
+            cur = self.conn.cursor()
+            cur.execute("""
+                SELECT DUNGEON_NAME, ZONE, UPGRADE_1, UPGRADE_2, UPGRADE_3
+                  FROM MYTHIC_DUNGEON
+                 WHERE DUNGEON_ID = %s
+            """, [ dungeon_id ])
+
+            r = cur.fetchone()
+            if not r:
+                return None
+
+            return {
+                'dungeon_id': dungeon_id,
+                'dungeon_name': r[0],
+                'zone': r[1],
+                'upgrade_1': int(r[2]),
+                'upgrade_2': int(r[3]),
+                'upgrade_3': int(r[4])
+            }
+        finally:
+            cur.close()
+
     def update_dungeon(self, dungeon):
         if self.conn is None:
             return []
@@ -189,7 +216,7 @@ class MythicDatabase:
         try:
             cur = self.conn.cursor()
             cur.execute("""
-            SELECT DUNGEON_ID, DUNGEON_NAME, MYTHIC_RATING, PERIOD
+            SELECT DUNGEON_ID, DUNGEON_NAME, MYTHIC_RATING, PERIOD, (SELECT SEASON FROM MYTHIC_SEASON_PERIOD WHERE PERIOD = RR.PERIOD) AS SEASON
             FROM (
             SELECT DUNGEON_ID,
             (SELECT DUNGEON_NAME FROM MYTHIC_DUNGEON WHERE DUNGEON_ID = MR.DUNGEON_ID) AS DUNGEON_NAME,
@@ -214,7 +241,8 @@ class MythicDatabase:
                 "dungeon_id": int(r[0]),
                 "dungeon_name": str(r[1]),
                 "mythic_rating": float(r[2]),
-                "period": int(r[3])
+                "period": int(r[3]),
+                "season": int(r[4])
             }, rows))
         finally:
             cur.close()
@@ -402,6 +430,25 @@ class MythicDatabase:
         finally:
             cur.close()
         return False
+
+    def find_season_period(self, season):
+        try:
+            cur = self.conn.cursor()
+            cur.execute("""
+                SELECT PERIOD FROM MYTHIC_SEASON_PERIOD
+                WHERE SEASON = %s
+            """, [ season ])
+            
+            rows = cur.fetchall()
+            if not rows:
+                return []
+
+            return list(map(lambda r: int(r[0]), rows))
+        except Exception as e:
+            logger.info(str(e))
+            traceback.print_exc()
+        finally:
+            cur.close()
 
     def find_period(self, period=None, timestamp=None):
         try:
