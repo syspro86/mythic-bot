@@ -59,7 +59,7 @@ export default {
                             y: dscore,
                             group: String(did),
                             label: {
-                                content: String(parseInt(dscore)) + '(' + dname.substring(0, 1) + ')',
+                                content: String(Math.round(dscore)) + '(' + dname.substring(0, 1) + ')',
                                 xOffset: -15,
                                 yOffset: 20
                             }
@@ -71,7 +71,7 @@ export default {
                             y: score,
                             group: '0',
                             label: {
-                                content: String(parseInt(score)),
+                                content: String(Math.round(score)),
                                 xOffset: -20,
                                 yOffset: -20
                             }
