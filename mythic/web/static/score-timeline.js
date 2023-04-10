@@ -9,10 +9,83 @@ export default {
             'servers': {},
             'serverNames': [],
             'showOption': true,
+            'showDungeons': '0',
+            'graph2d': null,
+            'graphs': {
+                '1': {
+                    'items': [],
+                    'groups': [{
+                        id: '0',
+                        content: "total",
+                        options: {
+                            excludeFromStacking: true
+                        }
+                    }],
+                    'options': {
+                        style: 'bar',
+                        stack: true,
+                        legend: true,
+                        locale: 'en',
+                        // zoomable: false,
+                        // barChart: { width: 50, align: 'center' },
+                        drawPoints: {
+                            onRender: function(item, group, grap2d) {
+                                return item.label != null;
+                            },
+                            style: 'circle'
+                        },                        
+                        dataAxis: {
+                            icons: true,
+                            left: { range: { min: 0, max: 0 } }
+                        },
+                        height: 900
+                    }
+                },
+                '0': {
+                    'items': [],
+                    'groups': [{
+                        id: '0',
+                        content: "total",
+                        options: {
+                            excludeFromStacking: true
+                        }
+                    }],
+                    'options': {
+                        style: 'bar',
+                        stack: false,
+                        legend: false,
+                        locale: 'en',
+                        // zoomable: false,
+                        // barChart: { width: 50, align: 'center' },
+                        drawPoints: {
+                            onRender: function(item, group, grap2d) {
+                                return item.label != null;
+                            },
+                            style: 'circle'
+                        },                        
+                        dataAxis: {
+                            icons: true,
+                            left: { range: { min: 0, max: 0 } }
+                        },
+                        height: 900
+                    }
+                }
+            }
         }
     },
     components: {
         Login, Menu
+    },
+    watch: {
+        showDungeons(newVal, oldVal) {
+            if (this.graph2d == null) {
+                return;
+            }
+            const g = this.graphs[this.showDungeons];
+            this.graph2d.setItems(g.items);
+            this.graph2d.setGroups(g.groups);
+            this.graph2d.setOptions(g.options);
+        }
     },
     methods: {
         search() {
@@ -30,22 +103,26 @@ export default {
             fetch('char/mythic_rating/' + encodeURI(this.server) + '/' + encodeURI(this.characterName)).then(async resp => {
                 const data = await resp.json();
                 
-                let season = 0
-                let period = 0
-                let dungeonScore = {}
-                let minTimestamp = 0
-                let maxTimestamp = 0
-                let periodTimestamp = 0
-                const oneWeek = 7*24*3600*1000
+                let season = 0;
+                let period = 0;
+                let dungeonScore = {};
+                let minTimestamp = 0;
+                let maxTimestamp = 0;
+                let periodTimestamp = 0;
+                const oneWeek = 7*24*3600*1000;
 
-                let items = []
-                let groups = [{
+                this.graphs['1'].items = [];
+                this.graphs['1'].groups = [{
                     id: '0',
                     content: "total",
                     options: {
                         excludeFromStacking: true
                     }
-                }]
+                }];
+                this.graphs['0'].items = [];
+                const items1 = this.graphs['1'].items;
+                const groups = this.graphs['1'].groups;
+                const items2 = this.graphs['0'].items;
 
                 const addSummary = () => {
                     let score = 0
@@ -56,7 +133,7 @@ export default {
 
                         const dname = groups.find(g => g.id == String(did)).content
 
-                        items.push({
+                        items1.push({
                             x: periodTimestamp,
                             y: dscore,
                             end: periodTimestamp + oneWeek,
@@ -69,7 +146,18 @@ export default {
                         })
                     }
                     if (score > 0) {
-                        items.push({
+                        items1.push({
+                            x: periodTimestamp,
+                            y: score,
+                            end: periodTimestamp + oneWeek,
+                            group: '0',
+                            label: {
+                                content: String(Math.round(score)),
+                                xOffset: 0,
+                                yOffset: -20
+                            }
+                        })
+                        items2.push({
                             x: periodTimestamp,
                             y: score,
                             end: periodTimestamp + oneWeek,
@@ -115,38 +203,25 @@ export default {
                     }
                 })
                 addSummary()
-                if (items.length >= 0) {
-                    const timelineMargin = oneWeek
-                    const container = document.getElementById('timeline')
-                    container.innerHTML = ''
-                    const graph2d = new vis.Graph2d(container, items, groups, {
-                        style: 'bar',
-                        stack: true,
-                        legend: true,
-                        locale: 'en',
-                        min: minTimestamp - timelineMargin,
-                        max: maxTimestamp + timelineMargin,
-                        start: minTimestamp - timelineMargin,
-                        end: maxTimestamp + timelineMargin,
-                        // zoomable: false,
-                        // barChart: { width: 50, align: 'center' },
-                        drawPoints: {
-                            onRender: function(item, group, grap2d) {
-                                return item.label != null;
-                            },
-                            style: 'circle'
-                        },                        
-                        dataAxis: {
-                            icons: true,
-                            left: {
-                                range: {
-                                    min: 0,
-                                    max: Math.ceil(Math.max.apply(null, items.filter(it => it.group == '0').map(it => it.y)) / 100) * 100 + 200
-                                }
-                            }
-                        },
-                        height: 900
-                    })
+                if (items1.length >= 0) {
+                    const timelineMargin = oneWeek;
+                    const container = document.getElementById('timeline');
+                    container.innerHTML = '';
+                    const g = this.graphs[this.showDungeons];
+
+                    const xRangeMin = minTimestamp - timelineMargin;
+                    const xRangeMax = maxTimestamp + timelineMargin * 2;
+                    const yRangeMax = Math.ceil(Math.max.apply(null, items1.filter(it => it.group == '0').map(it => it.y)) / 100) * 100 + 200;
+
+                    this.graphs['0'].options.min = xRangeMin;
+                    this.graphs['0'].options.max = xRangeMax;
+                    this.graphs['0'].options.dataAxis.left.range.max = yRangeMax;
+                    this.graphs['1'].options.min = xRangeMin;
+                    this.graphs['1'].options.max = xRangeMax;
+                    this.graphs['1'].options.dataAxis.left.range.max = yRangeMax;
+
+                    this.graph2d = new vis.Graph2d(container, g.items, g.groups, g.options);
+                    this.graph2d.setWindow(xRangeMin, xRangeMax);
                 }
             })
         },
@@ -177,24 +252,22 @@ export default {
     <v-container fluid>
     <v-row v-if="showOption" no-gutters>
         <v-col cols="12" sm="6">
-            <v-sheet>
             <v-text-field type="text" label="캐릭터명" v-model="characterName" />
-            </v-sheet>
         </v-col>
         <v-col cols="12" sm="6">
-            <v-sheet>
             <v-combobox id="server" label="서버" :items="serverNames" v-model="server" />
-            </v-sheet>
         </v-col>
     </v-row>
     <v-row no-gutters>
         <v-col>
-            <v-sheet>
             <v-btn class="ma-1" variant="outlined" @click="search">검색</v-btn>
             <v-btn class="ma-1" variant="outlined" @click="showOption=!showOption">{{ showOption ? "검색 조건 닫기" : "검색 조건 열기" }}</v-btn>
             <Menu/>
             <Login/>
-            </v-sheet>
+            <v-btn-toggle class="ma-1" v-model="showDungeons" mandatory>
+                <v-btn class="pa-1" variant="outlined" value="0">총점만 표시</v-btn>
+                <v-btn class="pa-1" variant="outlined" value="1">던전별 표시</v-btn>
+            </v-btn-toggle>
         </v-col>
     </v-row>
     <v-row no-gutters>
