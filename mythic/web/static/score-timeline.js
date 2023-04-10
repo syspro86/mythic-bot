@@ -94,9 +94,9 @@ export default {
                             minTimestamp = data.timestamp;
                         } else {
                             while (period < data.period) {
+                                addSummary();
                                 period++;
                                 periodTimestamp += oneWeek;
-                                addSummary();
                             }
                         }
                         period = data.period
