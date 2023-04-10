@@ -85,14 +85,19 @@ export default {
                 
                 data.forEach(data => {
                     if (data.season != season) {
-                        dungeonScore = {}
-                        season = data.season
+                        dungeonScore = {};
+                        season = data.season;
+                        period = 0;
                     }
                     if (data.period != period) {
-                        if (period == 0) {
-                            minTimestamp = data.timestamp
+                        if (minTimestamp == 0) {
+                            minTimestamp = data.timestamp;
                         } else {
-                            addSummary()
+                            while (period < data.period) {
+                                period++;
+                                periodTimestamp += oneWeek;
+                                addSummary();
+                            }
                         }
                         period = data.period
                         periodTimestamp = data.timestamp
