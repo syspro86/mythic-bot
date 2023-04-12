@@ -133,6 +133,7 @@ class MythicBot(BaseBot):
 
         if dungeon_id not in self.dungeon_cache:
             self.dungeon_cache[dungeon_id] = self.db.find_dungeon(dungeon_id)
+            dungeon['name'] = dungeon['dungeon_name']
         dungeon = self.dungeon_cache[dungeon_id]
         dungeon_name = dungeon['name']
 
