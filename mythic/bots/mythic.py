@@ -133,6 +133,9 @@ class MythicBot(BaseBot):
 
         if dungeon_id not in self.dungeon_cache:
             dungeon = self.db.find_dungeon(dungeon_id)
+            if dungeon is None:
+                print('unregistered dungeon = {dungeon_id}')
+                return
             self.dungeon_cache[dungeon_id] = dungeon
         dungeon = self.dungeon_cache[dungeon_id]
         dungeon_name = dungeon['dungeon_name']
