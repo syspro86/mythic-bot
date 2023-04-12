@@ -58,8 +58,8 @@ class MythicBot(BaseBot):
                 dungeon_id = dungeon['id']
                 d = self.api.bn_request(
                     f"/data/wow/mythic-keystone/dungeon/{dungeon_id}", token=True, namespace="dynamic")
-                self.dungeon_cache[dungeon_id] = d
                 self.db.update_dungeon(d)
+                self.dungeon_cache[dungeon_id] = self.db.find_dungeon(dungeon_id)
 
             specs = self.api.bn_request(
                 "/data/wow/playable-specialization/index", token=True, namespace="static")
@@ -133,15 +133,9 @@ class MythicBot(BaseBot):
 
         if dungeon_id not in self.dungeon_cache:
             dungeon = self.db.find_dungeon(dungeon_id)
-            dungeon['name'] = dungeon['dungeon_name']
-            dungeon['keystone_upgrades'] = [
-                { 'qualifying_duration': dungeon['upgrade_1'], 'upgrade_level': 1 },
-                { 'qualifying_duration': dungeon['upgrade_2'], 'upgrade_level': 2 },
-                { 'qualifying_duration': dungeon['upgrade_3'], 'upgrade_level': 3 },
-            ]
             self.dungeon_cache[dungeon_id] = dungeon
         dungeon = self.dungeon_cache[dungeon_id]
-        dungeon_name = dungeon['name']
+        dungeon_name = dungeon['dungeon_name']
 
         ts_str = datetime.fromtimestamp(
             completed_timestamp / 1000).strftime('%Y-%m-%d_%H:%M:%S')
@@ -153,6 +147,8 @@ class MythicBot(BaseBot):
                 m = {}
                 m['id'] = member['profile']['id']
                 m['name'] = member['profile']['name']
+                if m['name'] == '':
+                    m['name'] = '?'
                 rid = member['profile']['realm']['id']
                 m['realm'] = self.realm_cache[rid]['name']
                 if 'specialization' in member:
@@ -194,20 +190,21 @@ class MythicBot(BaseBot):
         record['completed_timestamp'] = completed_timestamp
         record['keystone_level'] = keystone_level
         record['keystone_upgrade'] = -1
-        record['mythic_rating'] = float(rec['mythic_rating']['rating']) if 'mythic_rating' in rec and 'rating' in rec['mythic_rating'] else 0
+        record['keystone_upgrade'] = 1 if duration < dungeon['upgrade_1'] else record['keystone_upgrade']
+        record['keystone_upgrade'] = 2 if duration < dungeon['upgrade_2'] else record['keystone_upgrade']
+        record['keystone_upgrade'] = 3 if duration < dungeon['upgrade_3'] else record['keystone_upgrade']
 
-        # 점수 공식
-        #if upgrade >= duration:
-        #    score = 30 + level * 7 + min(float(upgrade - duration) / upgrade, 0.4) * 5 / 0.4
-        #elif (duration-upgrade)/upgrade < 0.4:
-        #    score = 25 + min(level, 20) * 7 - min(float(duration - upgrade) / upgrade, 0.4) * 5 / 0.4
-        #else:
-        #    score = 0
-
-        for ku in dungeon['keystone_upgrades']:
-            if ku['qualifying_duration'] > duration:
-                record['keystone_upgrade'] = max(
-                    record['keystone_upgrade'], ku['upgrade_level'])
+        if 'mythic_rating' in rec and 'rating' in rec['mythic_rating']:
+            record['mythic_rating'] = float(rec['mythic_rating']['rating'])
+        else:
+            upgrade = dungeon['upgrade_1']
+            if upgrade >= duration:
+                score = 30 + keystone_level * 7 + min(float(upgrade - duration) / upgrade, 0.4) * 5 / 0.4
+            elif (duration-upgrade)/upgrade < 0.4:
+                score = 25 + min(keystone_level, 20) * 7 - min(float(duration - upgrade) / upgrade, 0.4) * 5 / 0.4
+            else:
+                score = 0
+            record['mythic_rating'] = score
 
         try:
             if self.db.insert_record(record):
