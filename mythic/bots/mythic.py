@@ -263,7 +263,7 @@ class MythicBot(BaseBot):
             for run in season_res['best_runs']:
                 board = {
                     'period': self.db.find_period(timestamp=run['completed_timestamp'])['period'],
-                    'season': self.current_season
+                    'season': season_res['season']['id']
                 }
                 
                 for mem in run['members']:
