@@ -116,6 +116,7 @@ class MythicBot(BaseBot):
             logger.info(f"leaderboard for {dungeon_id}, {realm_id} is empty. {board}")
             return
 
+        board['season'] = self.current_season
         for rec in board['leading_groups']:
             self.insert_record(board, rec, dungeon_id)
 
@@ -127,6 +128,7 @@ class MythicBot(BaseBot):
         keystone_level = rec['keystone_level']
 
         # map_name = board['map']['name']
+        season = board['season']
         period = board['period']
 
         dungeon = self.dungeon_cache[dungeon_id]
@@ -176,7 +178,7 @@ class MythicBot(BaseBot):
         if record_id in self.inserted_id_set:
             return
 
-        record['season'] = self.current_season
+        record['season'] = season
         record['period'] = period
         record['dungeon_id'] = dungeon_id
         record['duration'] = duration
@@ -202,6 +204,9 @@ class MythicBot(BaseBot):
             if self.db.insert_record(record):
                 logger.info(f"new record = {record['_id']}")
 
+                if season != self.current_season:
+                    return
+                
                 minute = int(record['duration'] / 60000)
                 second = (int(record['duration'] / 1000) % 60)
 
@@ -242,13 +247,14 @@ class MythicBot(BaseBot):
         for season in profile['seasons']:
             href = season['key']['href']
             season_res = self.api.bn_request(href, token=True)
-            if season_res['season']['id'] != self.current_season:
-                continue
+            #if season_res['season']['id'] != self.current_season:
+            #    continue
             if 'best_runs' not in season_res:
                 return
             for run in season_res['best_runs']:
                 board = {
-                    'period': self.db.find_period(timestamp=run['completed_timestamp'])['period']
+                    'period': self.db.find_period(timestamp=run['completed_timestamp'])['period'],
+                    'season': self.current_season
                 }
                 
                 for mem in run['members']:
