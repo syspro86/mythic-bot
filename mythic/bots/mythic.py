@@ -348,7 +348,7 @@ class MythicBot(BaseBot):
                 leaderboards = self.api.bn_request(f"/data/wow/connected-realm/{rid}/mythic-leaderboard/index", token=True, namespace="dynamic")
                 for leaderboard in leaderboards['current_leaderboards']:
                     did = leaderboard['id']
-                    logger.info(f"{rid} {self.dungeon_cache[did]['name']} ({did})")
+                    logger.info(f"{rid} {self.dungeon_cache[did]['dungeon_name']} ({did})")
                     self.get_leaderboard(
                         rid, did, self.current_period)
 
