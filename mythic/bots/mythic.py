@@ -75,6 +75,10 @@ class MythicBot(BaseBot):
             self.current_season = seasons['current_season']['id']
             for season in seasons['seasons']:
                 season_id = season['id']
+                # 과거 시즌 정보가 잘못되어 수작업으로 수정함.
+                # 다시 망가지지 않도록 현재 시즌만 갱신함.
+                if self.current_season != season_id:
+                    continue
                 season = self.api.bn_request(
                     f"/data/wow/mythic-keystone/season/{season_id}", token=True, namespace="dynamic")
                 season_name = season['season_name']
