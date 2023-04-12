@@ -132,8 +132,14 @@ class MythicBot(BaseBot):
         period = board['period']
 
         if dungeon_id not in self.dungeon_cache:
-            self.dungeon_cache[dungeon_id] = self.db.find_dungeon(dungeon_id)
+            dungeon = self.db.find_dungeon(dungeon_id)
             dungeon['name'] = dungeon['dungeon_name']
+            dungeon['keystone_upgrades'] = [
+                { 'qualifying_duration': dungeon['upgrade_1'], 'upgrade_level': 1 },
+                { 'qualifying_duration': dungeon['upgrade_2'], 'upgrade_level': 2 },
+                { 'qualifying_duration': dungeon['upgrade_3'], 'upgrade_level': 3 },
+            ]
+            self.dungeon_cache[dungeon_id] = dungeon
         dungeon = self.dungeon_cache[dungeon_id]
         dungeon_name = dungeon['name']
 
@@ -213,7 +219,7 @@ class MythicBot(BaseBot):
                 minute = int(record['duration'] / 60000)
                 second = (int(record['duration'] / 1000) % 60)
 
-                msg = f"{dungeon['name']}+{record['keystone_level']} ({ts_str2})\r\n"
+                msg = f"{dungeon_name}+{record['keystone_level']} ({ts_str2})\r\n"
                 msg += f"({record['keystone_upgrade']}) "
                 msg += f"{minute}분 {second}초"
                 for member in record['members']:
