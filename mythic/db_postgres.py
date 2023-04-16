@@ -725,7 +725,7 @@ class MythicDatabase:
                     DELETE FROM PLAYER_TALENT
                     WHERE PLAYER_REALM = %s
                     AND PLAYER_NAME = %s
-                    ABD SPEC_ID = 0
+                    AND SPEC_ID = 0
                 """, [
                     talent['player_realm'],
                     talent['player_name']
