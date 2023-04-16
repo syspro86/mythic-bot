@@ -720,6 +720,16 @@ class MythicDatabase:
                     talent['player_realm'],
                     talent['player_name']
                 ])
+            else:
+                cur.execute("""
+                    DELETE FROM PLAYER_TALENT
+                    WHERE PLAYER_REALM = %s
+                    AND PLAYER_NAME = %s
+                    ABD SPEC_ID = 0
+                """, [
+                    talent['player_realm'],
+                    talent['player_name']
+                ])
 
             cur.execute("""
                 INSERT INTO PLAYER_TALENT
