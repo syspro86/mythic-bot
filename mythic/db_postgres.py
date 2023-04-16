@@ -641,8 +641,19 @@ class MythicDatabase:
     def next_update_player(self):
         try:
             cur = self.conn.cursor()
+
             cur.execute("""
-                select rp.player_realm, rp.player_name, last_update_ts from (
+                select player_realm, player_name from player_talent
+                 where last_update_ts = 0
+                limit 1
+            """)
+            
+            r = cur.fetchone()
+            if r is not None:
+                return { 'realm': r[0], 'name': r[1] }
+
+            cur.execute("""
+                select rp.player_realm, rp.player_name from (
                 select distinct player_realm, player_name from mythic_record_player
                 where record_id in (
                 select record_id from mythic_record
@@ -661,7 +672,7 @@ class MythicDatabase:
                 return { 'realm': r[0], 'name': r[1] }
 
             cur.execute("""
-                select rp.player_realm, rp.player_name, last_update_ts from (
+                select rp.player_realm, rp.player_name from (
                 select distinct player_realm, player_name from mythic_record_player
                 where record_id in (
                 select record_id from mythic_record
@@ -681,7 +692,7 @@ class MythicDatabase:
                 return { 'realm': r[0], 'name': r[1] }
 
             cur.execute("""
-                select player_realm, player_name, last_update_ts from player_talent
+                select player_realm, player_name from player_talent
                 order by last_update_ts asc
                 limit 1
             """)
