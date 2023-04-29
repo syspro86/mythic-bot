@@ -35,7 +35,7 @@ class MythicDatabase:
         record = copy.deepcopy(record)
 
         players = list(
-            map(lambda m: (record['_id'], m['realm'], m['name'], m['spec'], m['className'], m['specName'], m['role']), record['members']))
+            map(lambda m: (record['_id'], m['realm'], m['name'], m['spec'], m['className'], m['specName'], m['role'], m['id']), record['members']))
         
         del record['members']
         rows = [(
@@ -56,7 +56,7 @@ class MythicDatabase:
                 "insert into public.mythic_record(record_id, season, period, dungeon_id, duration, completed_timestamp, keystone_level, keystone_upgrade, mythic_rating, json_text) values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)", rows)
 
             cur.executemany(
-                "insert into mythic_record_player(record_id, player_realm, player_name, spec_id, class_name, spec_name, role_name) values (%s, %s, %s, %s, %s, %s, %s)", players)
+                "insert into mythic_record_player(record_id, player_realm, player_name, spec_id, class_name, spec_name, role_name, player_id) values (%s, %s, %s, %s, %s, %s, %s, %s)", players)
 
             self.conn.commit()
             return True
@@ -105,6 +105,33 @@ class MythicDatabase:
                 return []
 
             return list(map(lambda r: r[0], rows))
+        finally:
+            cur.close()
+
+    def find_dungeon(self, dungeon_id):
+        if self.conn is None:
+            return None
+        
+        try:
+            cur = self.conn.cursor()
+            cur.execute("""
+                SELECT DUNGEON_NAME, ZONE, UPGRADE_1, UPGRADE_2, UPGRADE_3
+                  FROM MYTHIC_DUNGEON
+                 WHERE DUNGEON_ID = %s
+            """, [ dungeon_id ])
+
+            r = cur.fetchone()
+            if not r:
+                return None
+
+            return {
+                'dungeon_id': dungeon_id,
+                'dungeon_name': r[0],
+                'zone': r[1],
+                'upgrade_1': int(r[2]),
+                'upgrade_2': int(r[3]),
+                'upgrade_3': int(r[4])
+            }
         finally:
             cur.close()
 
@@ -189,7 +216,7 @@ class MythicDatabase:
         try:
             cur = self.conn.cursor()
             cur.execute("""
-            SELECT DUNGEON_ID, DUNGEON_NAME, MYTHIC_RATING, PERIOD
+            SELECT DUNGEON_ID, DUNGEON_NAME, MYTHIC_RATING, PERIOD, (SELECT MIN(SEASON) FROM MYTHIC_SEASON_PERIOD WHERE PERIOD = RR.PERIOD) AS SEASON
             FROM (
             SELECT DUNGEON_ID,
             (SELECT DUNGEON_NAME FROM MYTHIC_DUNGEON WHERE DUNGEON_ID = MR.DUNGEON_ID) AS DUNGEON_NAME,
@@ -214,7 +241,8 @@ class MythicDatabase:
                 "dungeon_id": int(r[0]),
                 "dungeon_name": str(r[1]),
                 "mythic_rating": float(r[2]),
-                "period": int(r[3])
+                "period": int(r[3]),
+                "season": int(r[4])
             }, rows))
         finally:
             cur.close()
@@ -307,6 +335,28 @@ class MythicDatabase:
             cur.close()
         return []
     
+    def find_all_realm(self):
+        try:
+            cur = self.conn.cursor()
+            cur.execute("""
+                SELECT REALM_ID, REALM_SLUG, REALM_NAME FROM PLAYER_REALM
+            """)
+            rows = cur.fetchall()
+            if not rows:
+                return []
+            
+            return list(map(lambda r: {
+                'realm_id': int(r[0]),
+                'realm_slug': str(r[1]),
+                'realm_name': str(r[2]),
+            }, rows))
+        except Exception as e:
+            logger.info(str(e))
+            traceback.print_exc()
+        finally:
+            cur.close()
+        return None
+
     def find_realm_slug(self, realm_name):
         try:
             cur = self.conn.cursor()
@@ -338,6 +388,63 @@ class MythicDatabase:
             self.conn.commit()
         except Exception as e:
             self.conn.rollback()
+            logger.info(str(e))
+            traceback.print_exc()
+        finally:
+            cur.close()
+
+    def update_season(self, season_id, season_name, start_timestamp, end_timestamp, periods):
+        try:
+            cur = self.conn.cursor()
+            cur.execute("""
+                INSERT INTO MYTHIC_SEASON
+                (SEASON, SEASON_NAME, START_TIMESTAMP, END_TIMESTAMP)
+                VALUES (%s, %s, %s, %s)
+                ON CONFLICT (SEASON) DO UPDATE
+                SET SEASON_NAME = %s,
+                START_TIMESTAMP = %s,
+                END_TIMESTAMP = %s
+            """, [
+                season_id,
+                season_name, start_timestamp, end_timestamp,
+                season_name, start_timestamp, end_timestamp
+            ])
+
+            cur.execute("""
+                DELETE FROM MYTHIC_SEASON_PERIOD
+                WHERE SEASON = %s
+            """, [ season_id ])
+
+            cur.executemany("""
+                INSERT INTO MYTHIC_SEASON_PERIOD
+                (SEASON, PERIOD)
+                VALUES (%s, %s)
+            """, list(map(lambda p: [ season_id, p ], periods)))
+
+            self.conn.commit()
+            return cur.rowcount > 0
+        except Exception as e:
+            self.conn.rollback()
+            logger.info(str(e))
+            traceback.print_exc()
+        finally:
+            cur.close()
+        return False
+
+    def find_season_period(self, season):
+        try:
+            cur = self.conn.cursor()
+            cur.execute("""
+                SELECT PERIOD FROM MYTHIC_SEASON_PERIOD
+                WHERE SEASON = %s
+            """, [ season ])
+            
+            rows = cur.fetchall()
+            if not rows:
+                return []
+
+            return list(map(lambda r: int(r[0]), rows))
+        except Exception as e:
             logger.info(str(e))
             traceback.print_exc()
         finally:
@@ -534,8 +641,19 @@ class MythicDatabase:
     def next_update_player(self):
         try:
             cur = self.conn.cursor()
+
             cur.execute("""
-                select rp.player_realm, rp.player_name, last_update_ts from (
+                select player_realm, player_name from player_talent
+                 where last_update_ts = 0
+                limit 1
+            """)
+            
+            r = cur.fetchone()
+            if r is not None:
+                return { 'realm': r[0], 'name': r[1] }
+
+            cur.execute("""
+                select rp.player_realm, rp.player_name from (
                 select distinct player_realm, player_name from mythic_record_player
                 where record_id in (
                 select record_id from mythic_record
@@ -554,7 +672,7 @@ class MythicDatabase:
                 return { 'realm': r[0], 'name': r[1] }
 
             cur.execute("""
-                select rp.player_realm, rp.player_name, last_update_ts from (
+                select rp.player_realm, rp.player_name from (
                 select distinct player_realm, player_name from mythic_record_player
                 where record_id in (
                 select record_id from mythic_record
@@ -574,7 +692,7 @@ class MythicDatabase:
                 return { 'realm': r[0], 'name': r[1] }
 
             cur.execute("""
-                select player_realm, player_name, last_update_ts from player_talent
+                select player_realm, player_name from player_talent
                 order by last_update_ts asc
                 limit 1
             """)
@@ -598,6 +716,16 @@ class MythicDatabase:
                     DELETE FROM PLAYER_TALENT
                     WHERE PLAYER_REALM = %s
                     AND PLAYER_NAME = %s
+                """, [
+                    talent['player_realm'],
+                    talent['player_name']
+                ])
+            else:
+                cur.execute("""
+                    DELETE FROM PLAYER_TALENT
+                    WHERE PLAYER_REALM = %s
+                    AND PLAYER_NAME = %s
+                    AND SPEC_ID = 0
                 """, [
                     talent['player_realm'],
                     talent['player_name']
@@ -717,7 +845,7 @@ class MythicDatabase:
 
         return []
     
-    def get_relation(self, name, realm, run):
+    def get_relation(self, name, realm, run, limit=100):
         if self.conn is None:
             return []
 
@@ -733,7 +861,8 @@ class MythicDatabase:
                 GROUP BY PLAYER_REALM, PLAYER_NAME
                 HAVING COUNT(1) >= %s
                 ORDER BY 3 DESC
-            """, [realm, name, int(run)])
+                LIMIT %s
+            """, [realm, name, int(run), limit])
 
             rows = cur.fetchall()
             if not rows:

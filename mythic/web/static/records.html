@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+<title>Mythic+</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta charset="UTF-8">
+<link rel="stylesheet" href="css/angular-material.min.css">
+<style>
+.mythic-record {
+	border: black solid 1px;
+	border-radius: 10px;
+	padding: 10px;
+	background-color: #f0f0f0;
+}
+
+.keystone_level {
+	color: #ff0000;
+	background-color: rgba(255, 255, 255, 0.5);
+	border: black solid 1px;
+	border-radius: 10px;
+	padding: 5px;
+}
+
+.dungeon_title {
+	color: #000000;
+	background-color: rgba(255, 255, 255, 0.5);
+	border: black solid 1px;
+	border-radius: 10px;
+	padding: 5px;
+	width: 200px;
+}
+
+.record_desc {
+	color: #000000;
+	background-color: rgba(255, 255, 255, 0.5);
+	border: black solid 1px;
+	border-radius: 10px;
+	padding: 5px;
+	width: 200px;
+}
+
+.class0 {
+	color: #f0f0f0 !important;
+}
+
+.class1 {
+	color: #C79C6E !important;
+}
+
+.class2 {
+	color: #F58CBA !important;
+}
+
+.class3 {
+	color: #ABD473 !important;
+}
+
+.class4 {
+	color: #FFF569 !important;
+}
+
+.class5 {
+	color: #FFFFFF !important;
+}
+
+.class6 {
+	color: #C41F3B !important;
+}
+
+.class7 {
+	color: #0070DE !important;
+}
+
+.class8 {
+	color: #69CCF0 !important;
+}
+
+.class9 {
+	color: #9482C9 !important;
+}
+
+.class10 {
+	color: #00FF96 !important;
+}
+
+.class11 {
+	color: #FF7D0A !important;
+}
+
+.class12 {
+	color: #A330C9 !important;
+}
+
+.red_border {
+	padding: 5px;
+	background-color: red;
+}
+
+@media ( min-width : 1200px) {
+	.content_body {
+		width: 1200px;
+	}
+	.member_card {
+		margin: 1px;
+		padding: 5px;
+		background-color: #404040 !important; /* font-weight: bold; */
+		width: 400px;
+	}
+}
+
+@media ( max-width : 1200px) {
+	.member_card {
+		margin: 1px;
+		padding: 5px;
+		background-color: #404040 !important; /* font-weight: bold; */
+		width: 100%;
+	}
+}
+</style>
+</head>
+
+<body ng-app="MyApp" ng-controller="MyController" ng-cloak>
+	<section class="content_body" layout="column"
+	style="margin: 5px; margin: 0 auto;">
+
+		<section ng-if="!session">
+			1. 텔레그램에서 @wow_mythic_bot 봇을 추가하세요.<br> 2. "/add 캐릭명-서버명" 으로
+			추가하세요.<br> 3. "/me" 메시지를 보내고 나오는 링크로 접속하세요.
+		</section>
+
+		<section ng-if="session">
+			<section ng-if="!characters || characters.length == 0">등록된
+				캐릭터가 없습니다. 텔레그램 @wow_mythic_bot 봇에서 "/add 캐릭명-서버명" 으로 추가하세요.</section>
+
+			<section ng-if="data != null" class="mythic-record" layout="row">
+				<span ng-if="data.avatar_url" ng-click="select(null)"
+					style="cursor: pointer;"><img
+					ng-src="{{data.avatar_url}}" /></span>
+				<div layout="column" flex>
+					<div>{{data.name}}-{{data.realm.name}}</div>
+					<span ng-if="data.items">ItemLevel: 
+						{{data.items.averageItemLevel}}</span> <span ng-if="data.dps">DPS:
+						{{data.dps}}</span> <span ng-if="data.weekly">주차: {{data.weekly}}</span>
+				</div>
+			</section>
+
+			<section ng-if="data == null" class="mythic-record"
+				ng-repeat="char in characters track by $index" layout="row">
+				<span ng-if="char.avatar_url" ng-click="select(char)"
+					style="cursor: pointer;"><img
+					ng-src="{{char.avatar_url}}" /></span>
+				<div layout="column" flex>
+					<div>{{char.name}}-{{char.realm.name}}</div>
+					<span ng-if="char.items">ItemLevel:
+						{{char.items.averageItemLevel}}</span> <span ng-if="char.dps">DPS:
+						{{char.dps}}</span> <span ng-if="char.weekly">주차: {{char.weekly}}</span>
+				</div>
+			</section>
+
+			<section ng-if="data == null">
+				메모 목록
+				<section class="mythic-record"
+					ng-repeat="(key, value) in comments track by $index" layout="row">
+					<section layout="column">{{key}} : {{value}}</section>
+				</section>
+			</section>
+
+			<section layout="row" style="margin: 5px;" ng-if="data">
+				Item Level:
+				{{data.items.averageItemLevel}}({{data.items.averageItemLevelEquipped}})
+				<img
+					ng-src="https://render-{{region}}.worldofwarcraft.com/icons/36/{{data.items.head.icon}}.jpg" />
+				<img
+					ng-src="https://render-{{region}}.worldofwarcraft.com/icons/36/{{data.items.neck.icon}}.jpg" />
+				<img
+					ng-src="https://render-{{region}}.worldofwarcraft.com/icons/36/{{data.items.shoulder.icon}}.jpg" />
+				<img
+					ng-src="https://render-{{region}}.worldofwarcraft.com/icons/36/{{data.items.back.icon}}.jpg" />
+				<img
+					ng-src="https://render-{{region}}.worldofwarcraft.com/icons/36/{{data.items.chest.icon}}.jpg" />
+				<img
+					ng-src="https://render-{{region}}.worldofwarcraft.com/icons/36/{{data.items.wrist.icon}}.jpg" />
+				<img
+					ng-src="https://render-{{region}}.worldofwarcraft.com/icons/36/{{data.items.hands.icon}}.jpg" />
+				<img
+					ng-src="https://render-{{region}}.worldofwarcraft.com/icons/36/{{data.items.waist.icon}}.jpg" />
+				<img
+					ng-src="https://render-{{region}}.worldofwarcraft.com/icons/36/{{data.items.legs.icon}}.jpg" />
+				<img
+					ng-src="https://render-{{region}}.worldofwarcraft.com/icons/36/{{data.items.feet.icon}}.jpg" />
+				<img
+					ng-src="https://render-{{region}}.worldofwarcraft.com/icons/36/{{data.items.finger1.icon}}.jpg" />
+				<img
+					ng-src="https://render-{{region}}.worldofwarcraft.com/icons/36/{{data.items.finger2.icon}}.jpg" />
+				<img
+					ng-src="https://render-{{region}}.worldofwarcraft.com/icons/36/{{data.items.trinket1.icon}}.jpg" />
+				<img
+					ng-src="https://render-{{region}}.worldofwarcraft.com/icons/36/{{data.items.trinket2.icon}}.jpg" />
+				<img
+					ng-src="https://render-{{region}}.worldofwarcraft.com/icons/36/{{data.items.mainHand.icon}}.jpg" />
+				<img
+					ng-src="https://render-{{region}}.worldofwarcraft.com/icons/36/{{data.items.offHand.icon}}.jpg" />
+			</section>
+
+			<section layout="column" style="margin: 5px;" ng-if="data.simcResult">
+				<section ng-if="!data.simc_open">
+					<md-button ng-click="data.simc_open = true">simc 열기</md-button>
+				</section>
+				<section ng-if="data.simc_open">
+					<md-button ng-click="data.simc_open = false">simc 닫기</md-button>
+					<table>
+						<thead>
+							<td>DPS</td>
+							<td colspan="16">아이템</td>
+						</thead>
+						<tr ng-repeat="simc in data.simcs track by $index">
+							<td>{{simc.dps}}</td>
+							<td ng-class="simc.gear.head.styles"><img
+								ng-src="{{simc.gear.head.icon}}"
+								ng-attr-title="{{simc.gear.head.title}}" /></td>
+							<td ng-class="simc.gear.neck.styles"><img
+								ng-src="{{simc.gear.neck.icon}}"
+								ng-attr-title="{{simc.gear.neck.title}}" /></td>
+							<td ng-class="simc.gear.shoulders.styles"><img
+								ng-src="{{simc.gear.shoulders.icon}}"
+								ng-attr-title="{{simc.gear.shoulders.title}}" /></td>
+							<td ng-class="simc.gear.back.styles"><img
+								ng-src="{{simc.gear.back.icon}}"
+								ng-attr-title="{{simc.gear.back.title}}" /></td>
+							<td ng-class="simc.gear.chest.styles"><img
+								ng-src="{{simc.gear.chest.icon}}"
+								ng-attr-title="{{simc.gear.chest.title}}" /></td>
+							<td ng-class="simc.gear.wrist.styles"><img
+								ng-src="{{simc.gear.wrist.icon}}"
+								ng-attr-title="{{simc.gear.wrist.title}}" /></td>
+							<td ng-class="simc.gear.hands.styles"><img
+								ng-src="{{simc.gear.hands.icon}}"
+								ng-attr-title="{{simc.gear.hands.title}}" /></td>
+							<td ng-class="simc.gear.waist.styles"><img
+								ng-src="{{simc.gear.waist.icon}}"
+								ng-attr-title="{{simc.gear.waist.title}}" /></td>
+							<td ng-class="simc.gear.legs.styles"><img
+								ng-src="{{simc.gear.legs.icon}}"
+								ng-attr-title="{{simc.gear.legs.title}}" /></td>
+							<td ng-class="simc.gear.feet.styles"><img
+								ng-src="{{simc.gear.feet.icon}}"
+								ng-attr-title="{{simc.gear.feet.title}}" /></td>
+							<td ng-class="simc.gear.finger1.styles"><img
+								ng-src="{{simc.gear.finger1.icon}}"
+								ng-attr-title="{{simc.gear.finger1.title}}" /></td>
+							<td ng-class="simc.gear.finger2.styles"><img
+								ng-src="{{simc.gear.finger2.icon}}"
+								ng-attr-title="{{simc.gear.finger2.title}}" /></td>
+							<td ng-class="simc.gear.trinket1.styles"><img
+								ng-src="{{simc.gear.trinket1.icon}}"
+								ng-attr-title="{{simc.gear.trinket1.title}}" /></td>
+							<td ng-class="simc.gear.trinket2.styles"><img
+								ng-src="{{simc.gear.trinket2.icon}}"
+								ng-attr-title="{{simc.gear.trinket2.title}}" /></td>
+							<td ng-class="simc.gear.main_hand.styles"><img
+								ng-src="{{simc.gear.main_hand.icon}}"
+								ng-attr-title="{{simc.gear.main_hand.title}}" /></td>
+							<td ng-class="simc.gear.off_hand.styles"><img
+								ng-src="{{simc.gear.off_hand.icon}}"
+								ng-attr-title="{{simc.gear.off_hand.title}}" /></td>
+						</tr>
+					</table>
+				</section>
+			</section>
+
+			<section class="mythic-record"
+				ng-repeat="rec in record track by $index" layout-xs="column"
+				layout-gt-xs="row"
+				ng-style="{'margin': '5px','background-image': 'url(https://render-{{region}}.worldofwarcraft.com/zones/{{rec.dungeon.zone.slug}}-small.jpg)', 'background-position': 'center center', 'background-size': 'cover'}">
+				<section layout="column">
+					<section>
+						<div class="dungeon_title">{{rec.dungeon.name}}
+							+{{rec.keystone_level}}</div>
+					</section>
+					<section class="record_desc">
+						{{rec.completed_timestamp_str}}<br> 소요시간:
+						{{rec.duration_str}} ({{rec.upgrade}})
+					</section>
+				</section>
+				<section layout="column">
+					<section layout="column">
+						<span flex ng-repeat="m in rec.members track by $index"
+							ng-class="['member_card']"> <!-- <md-button ng-click="member_clicked(m)" ng-class="[m.clazz, 'md-raised']"> -->
+							<span layout="row"> <span flex><img
+									ng-if="m.spec != null"
+									ng-src="https://render-{{region}}.worldofwarcraft.com/icons/18/{{m.spec.icon}}.jpg"
+									title="{{m.spec.name}}" />&nbsp;<span ng-class="m.clazz">{{m.name}}-{{m.realm}}</span><br>
+									<span style="color: white;">{{getComments(m)}}</span></span> <span><md-button
+										ng-click="commentClicked(m)" style="color: white;">메모입력</md-button></span>
+						</span> <!-- </md-button> -->
+						</span>
+					</section>
+				</section>
+			</section>
+		</section>
+	</section>
+
+	<script src="js/angular.min.js"></script>
+	<script src="js/angular-animate.min.js"></script>
+	<script src="js/angular-aria.min.js"></script>
+	<script src="js/angular-messages.min.js"></script>
+	<script src="js/angular-material.min.js"></script>
+
+	<script>
+        var CLASS_COLOR = {
+            1: '#C79C6E', // Warrior
+            2: '#F58CBA', // Paladin
+            3: '#ABD473', // Hunter
+            4: '#FFF569"', // Rogue
+            5: '#FFFFFF', // Priest
+            6: '#C41F3B', // Death Knight
+            7: '#0070DE', // Shaman
+            8: '#69CCF0', // Mage
+            9: '#9482C9', // Warlock
+            10: '#00FF96', // Monk
+            11: '#FF7D0A', // Druid
+            12: '#A330C9' // Demon hunter
+        }
+
+        function groupBy(list, keyGetter) {
+            const map = new Map();
+            list.forEach((item) => {
+                const key = keyGetter(item);
+                const collection = map.get(key);
+                if (!collection) {
+                    map.set(key, [item]);
+                } else {
+                    collection.push(item);
+                }
+            });
+            return map;
+        }
+		
+		function parse_query_string(query) {
+			var vars = query.split("&");
+			var query_string = {};
+			for (var i = 0; i < vars.length; i++) {
+				var pair = vars[i].split("=");
+				var key = decodeURIComponent(pair[0]);
+				var value = decodeURIComponent(pair[1]);
+				// If first entry with this name
+				if (typeof query_string[key] === "undefined") {
+					query_string[key] = decodeURIComponent(value);
+					// If second entry with this name
+				} else if (typeof query_string[key] === "string") {
+					var arr = [query_string[key], decodeURIComponent(value)];
+					query_string[key] = arr;
+					// If third or later entry with this name
+				} else {
+					query_string[key].push(decodeURIComponent(value));
+				}
+			}
+			return query_string;
+		}
+	        
+        var app = angular.module('MyApp', ['ngMaterial']);
+        app.controller('MyController', MyController);
+
+        function MyController($scope, $http, $timeout) {
+        	$scope.region = 'kr'
+            $scope.characterName = ''
+            $scope.server = ''
+            $scope.data = null
+            $scope.record = []
+            $scope.characters = []
+            $scope.comments = {}
+            $scope.imagePathes = []
+        	$scope.dungeons = []
+            
+            $scope.session = ''
+			var urlQuery = parse_query_string(window.location.search.substring(1))
+			if (urlQuery['session']) {
+				$scope.session = urlQuery['session']
+			}
+        	
+            $http({
+                method: 'GET',
+                url: 'form/init',
+            }).then(function (resp) {
+                $scope.region = resp.data.region
+                $scope.dungeons = resp.data.dungeons
+				$scope.specs = resp.data.specs
+				
+				$scope.initWithSession()
+            }).catch(function () {
+            })
+        	
+            $scope.initWithSession = function () {
+                if ($scope.session == '') {
+                	return
+                }
+            
+                $http({
+                    method: 'GET',
+                    url: 'user/' + $scope.session + '/char'
+                }).then(function (resp) {
+                    console.log(resp.data)
+                    $scope.characters = resp.data.map(name => {
+						var names = name.split('-')
+                    	return { name: names[0], realm: names.slice(1).join('-') }
+                    })
+                    
+                    $scope.characters.forEach((character, index) => {
+                    	$http({
+                            method: 'GET',
+                            url: 'char/profile/' + character.realm + '/' + character.name
+                        }).then(function (resp) {
+                            console.log(resp.data)
+                            $scope.characters[index] = resp.data
+                            if (resp.data.simcResult) {
+                            	$scope.characters[index].dps = parseInt(resp.data.simcResult.sim.players[0].collected_data.dps.mean)
+                            	$scope.characters[index].simc_open = true
+                            	$scope.characters[index].simcs = resp.data.simcResult.sim.players.map(function(player) {
+                            		return {
+                           				gear: angular.merge({}, player.gear),
+                           				dps: parseInt(player.collected_data.dps.mean)
+                        			}
+                            	})
+                            	var simcs = $scope.characters[index].simcs
+                            	simcs.forEach(function(player) {
+                            		for (var part in player.gear) {
+                            			if (simcs[0].gear[part].encoded_item != player.gear[part].encoded_item) {
+                            				player.gear[part].styles = ['red_border']
+                            			} else {
+                            				player.gear[part].styles = []
+                            			}
+                       					(function(gear) {
+						                	gear.icon = ''
+						                	gear.title = ''
+							            	$http({
+							                    method: 'GET',
+							                    url: 'item/encoded/' + encodeURIComponent(gear.encoded_item.replace(/\//g, '_')),
+							                }).then(function (resp) {
+							                	gear.icon = 'https://render-' + $scope.region + '.worldofwarcraft.com/icons/36/' + resp.data.item.icon + '.jpg'
+							                	gear.title = resp.data.item.name
+							                }).catch(function () {
+							                	console.log(gear)
+							                })
+                       					})(player.gear[part])
+                            		}
+                            	})
+                            } else {
+                            	$scope.characters[index].dps = '아직 계산되지 않음'
+                            }
+                            
+                            $http({
+                                method: 'GET',
+                                url: 'char/weekly/' + character.realm + '/' + character.name
+                            }).then(function (resp) {
+                                console.log(resp.data)
+                                if (resp.data) {
+                                	$scope.characters[index].weekly = $scope.dungeons[resp.data.dungeon_id].name + ' +' + resp.data.keystone_level + ' (' + resp.data.keystone_upgrade + ')'
+                                } else {
+                                	$scope.characters[index].weekly = '(없음)'
+                                }
+                            }).catch(function () {
+                            })
+                        }).catch(function () {
+                        })
+                    })
+                }).catch(function () {
+                })
+                
+                $http({
+                    method: 'GET',
+                    url: 'user/' + $scope.session + '/comments'
+                }).then(function (resp) {
+                    console.log(resp.data)
+                    if (typeof(resp.data) === 'object') {
+	                    $scope.comments = resp.data
+                    } else {
+                    	$scope.comments = {}
+                    }
+                }).catch(function () {
+                })
+            }
+
+            $scope.search = function () {
+                if ($scope.characterName != '') {
+                    $http({
+                        method: 'GET',
+                        url: 'char/profile/' + $scope.server + '/' + $scope.characterName,
+                    }).then(function (resp) {
+                        console.log(resp.data)
+                        $scope.data = resp.data
+                    }).catch(function () {
+                    })
+                }
+
+                $scope.searchRecord()
+            }
+            
+            $scope.searchRecord = function () {
+                $http({
+                    method: 'GET',
+                    url: ($scope.characterName == '') ? 'char/record/' : 'char/record/' + encodeURIComponent($scope.server) + '/' + encodeURIComponent($scope.characterName),
+                }).then(function (resp) {
+                    console.log(resp.data)
+                    $scope.record = resp.data
+                    $scope.record.forEach(rec => {
+                        rec.dungeon = $scope.dungeons[rec.dungeon_id]
+                        var date = new Date(rec.completed_timestamp)
+                        rec.completed_timestamp_str = `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()} ${date.getHours()}:${date.getMinutes()}`
+                        rec.duration_str = Math.floor(rec.duration / 60000) + ':' + (Math.floor(rec.duration / 1000) % 60)
+                        rec.upgrade = 0
+                        rec.dungeon.keystone_upgrades.forEach(upgrade => {
+                            if (upgrade.qualifying_duration > rec.duration) {
+                                rec.upgrade = Math.max(rec.upgrade, upgrade.upgrade_level)
+                            }
+                        })
+                        if (rec.members.some(m => m.spec != null)) {
+                            rec.members.forEach(m => {
+                                if (m.spec != null) {
+                                	var spec = $scope.specs[m.spec]
+                                    var clazz = spec.playable_class.id
+                                    var specName = spec.name
+                                    m.role = spec.role.type
+                                    m.clazz = 'class' + clazz
+                                }
+                            })
+                            var sorted_members = []
+                            Array.prototype.push.apply(sorted_members, rec.members.filter(m => (m.role == 'TANK')))
+                            Array.prototype.push.apply(sorted_members, rec.members.filter(m => (m.role == 'HEALER' || m.role == 'HEALING')))
+                            Array.prototype.push.apply(sorted_members, rec.members.filter(m => (m.role == 'DAMAGE' || m.role == 'DPS')))
+                            rec.members = sorted_members
+                        }
+                    })
+                }).catch(function () {
+                })
+            }
+
+            $scope.member_clicked = function (member) {
+                $scope.characterName = member.name
+                $scope.server = member.realm.name
+            }
+            
+            $scope.select = function(character) {
+            	if (character != null) {
+            		$scope.data = character
+            		$scope.characterName = character.name
+            		$scope.server = character.realm.name
+            		if ($scope.data.record) {
+            			$scope.record = $scope.data.record
+            		} else {
+	            		$scope.searchRecord()
+               		}
+            	} else {
+            		if ($scope.data && $scope.record) {
+            			$scope.data.record = $scope.record
+            		}
+            		$scope.data = null
+            		$scope.record = []
+            	}
+            }
+            
+            $scope.getComments = function(member) {
+            	var fn = member.name + '-' + member.realm
+            	if (fn in $scope.comments) {
+            		return $scope.comments[fn]
+            	}
+            	return ''
+            }
+  
+            $scope.commentClicked = function(member) {
+            	var fn = member.name + '-' + member.realm
+            	var comment = prompt("메모 입력", $scope.getComments(member));
+            	if (comment != null) {
+            		if (comment == '') {
+            			comment = ' '
+            		}
+                    $http({
+                        method: 'POST',
+                        url: 'user/' + $scope.session + '/comments/' + fn,
+                        data: comment,
+                        responseType: 'text'
+                    }).then(function (resp) {
+                       	if (comment.trim() == '') {
+                       		delete $scope.comments[fn]
+                       	} else {
+	                        $scope.comments[fn] = comment
+                       	}
+                    }).catch(function (err) {
+                        console.log(err)
+                    })
+                 }
+            }
+        }
+    </script>
+</body>
+
+</html>

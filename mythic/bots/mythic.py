@@ -58,8 +58,8 @@ class MythicBot(BaseBot):
                 dungeon_id = dungeon['id']
                 d = self.api.bn_request(
                     f"/data/wow/mythic-keystone/dungeon/{dungeon_id}", token=True, namespace="dynamic")
-                self.dungeon_cache[dungeon_id] = d
                 self.db.update_dungeon(d)
+                self.dungeon_cache[dungeon_id] = self.db.find_dungeon(dungeon_id)
 
             specs = self.api.bn_request(
                 "/data/wow/playable-specialization/index", token=True, namespace="static")
@@ -73,6 +73,21 @@ class MythicBot(BaseBot):
             seasons = self.api.bn_request(
                 "/data/wow/mythic-keystone/season/index", token=True, namespace="dynamic")
             self.current_season = seasons['current_season']['id']
+            for season in seasons['seasons']:
+                season_id = season['id']
+                # 과거 시즌 정보가 잘못되어 수작업으로 수정함.
+                # 다시 망가지지 않도록 현재 시즌만 갱신함.
+                if self.current_season != season_id:
+                    continue
+                season = self.api.bn_request(
+                    f"/data/wow/mythic-keystone/season/{season_id}", token=True, namespace="dynamic")
+                season_name = season['season_name']
+                start_timestamp = season['start_timestamp']
+                end_timestamp = season['end_timestamp'] if 'end_timestamp' in season else None
+                periods = []
+                for period in season['periods']:
+                    periods.append(period['id'])
+                self.db.update_season(season_id, season_name, start_timestamp, end_timestamp, periods)
 
             periods = self.api.bn_request(
                 "/data/wow/mythic-keystone/period/index", token=True, namespace="dynamic")
@@ -101,6 +116,7 @@ class MythicBot(BaseBot):
             logger.info(f"leaderboard for {dungeon_id}, {realm_id} is empty. {board}")
             return
 
+        board['season'] = self.current_season
         for rec in board['leading_groups']:
             self.insert_record(board, rec, dungeon_id)
 
@@ -112,10 +128,17 @@ class MythicBot(BaseBot):
         keystone_level = rec['keystone_level']
 
         # map_name = board['map']['name']
+        season = board['season']
         period = board['period']
 
+        if dungeon_id not in self.dungeon_cache:
+            dungeon = self.db.find_dungeon(dungeon_id)
+            if dungeon is None:
+                print('unregistered dungeon = {dungeon_id}')
+                return
+            self.dungeon_cache[dungeon_id] = dungeon
         dungeon = self.dungeon_cache[dungeon_id]
-        dungeon_name = dungeon['name']
+        dungeon_name = dungeon['dungeon_name']
 
         ts_str = datetime.fromtimestamp(
             completed_timestamp / 1000).strftime('%Y-%m-%d_%H:%M:%S')
@@ -125,7 +148,10 @@ class MythicBot(BaseBot):
         def convert_member(member):
             try:
                 m = {}
+                m['id'] = member['profile']['id']
                 m['name'] = member['profile']['name']
+                if m['name'] == '':
+                    m['name'] = '?'
                 rid = member['profile']['realm']['id']
                 m['realm'] = self.realm_cache[rid]['name']
                 if 'specialization' in member:
@@ -160,38 +186,40 @@ class MythicBot(BaseBot):
         if record_id in self.inserted_id_set:
             return
 
-        record['season'] = self.current_season
+        record['season'] = season
         record['period'] = period
         record['dungeon_id'] = dungeon_id
         record['duration'] = duration
         record['completed_timestamp'] = completed_timestamp
         record['keystone_level'] = keystone_level
         record['keystone_upgrade'] = -1
-        record['mythic_rating'] = float(rec['mythic_rating']['rating']) if 'mythic_rating' in rec and 'rating' in rec['mythic_rating'] else 0
+        record['keystone_upgrade'] = 1 if duration < dungeon['upgrade_1'] else record['keystone_upgrade']
+        record['keystone_upgrade'] = 2 if duration < dungeon['upgrade_2'] else record['keystone_upgrade']
+        record['keystone_upgrade'] = 3 if duration < dungeon['upgrade_3'] else record['keystone_upgrade']
 
-        # 점수 공식
-        #if upgrade >= duration:
-        #    score = 30 + level * 7 + min(float(upgrade - duration) / upgrade, 0.4) * 5 / 0.4
-        #elif (duration-upgrade)/upgrade < 0.4:
-        #    score = 25 + min(level, 20) * 7 - min(float(duration - upgrade) / upgrade, 0.4) * 5 / 0.4
-        #else:
-        #    score = 0
-
-        for ku in dungeon['keystone_upgrades']:
-            if ku['qualifying_duration'] > duration:
-                record['keystone_upgrade'] = max(
-                    record['keystone_upgrade'], ku['upgrade_level'])
-
-
+        if 'mythic_rating' in rec and 'rating' in rec['mythic_rating']:
+            record['mythic_rating'] = float(rec['mythic_rating']['rating'])
+        else:
+            upgrade = dungeon['upgrade_1']
+            if upgrade >= duration:
+                score = 30 + keystone_level * 7 + min(float(upgrade - duration) / upgrade, 0.4) * 5 / 0.4
+            elif (duration-upgrade)/upgrade < 0.4:
+                score = 25 + min(keystone_level, 20) * 7 - min(float(duration - upgrade) / upgrade, 0.4) * 5 / 0.4
+            else:
+                score = 0
+            record['mythic_rating'] = score
 
         try:
             if self.db.insert_record(record):
                 logger.info(f"new record = {record['_id']}")
 
+                if season != self.current_season:
+                    return
+                
                 minute = int(record['duration'] / 60000)
                 second = (int(record['duration'] / 1000) % 60)
 
-                msg = f"{dungeon['name']}+{record['keystone_level']} ({ts_str2})\r\n"
+                msg = f"{dungeon_name}+{record['keystone_level']} ({ts_str2})\r\n"
                 msg += f"({record['keystone_upgrade']}) "
                 msg += f"{minute}분 {second}초"
                 for member in record['members']:
@@ -228,13 +256,14 @@ class MythicBot(BaseBot):
         for season in profile['seasons']:
             href = season['key']['href']
             season_res = self.api.bn_request(href, token=True)
-            if season_res['season']['id'] != self.current_season:
-                continue
+            #if season_res['season']['id'] != self.current_season:
+            #    continue
             if 'best_runs' not in season_res:
                 return
             for run in season_res['best_runs']:
                 board = {
-                    'period': self.db.find_period(timestamp=run['completed_timestamp'])['period']
+                    'period': self.db.find_period(timestamp=run['completed_timestamp'])['period'],
+                    'season': season_res['season']['id']
                 }
                 
                 for mem in run['members']:
@@ -322,7 +351,7 @@ class MythicBot(BaseBot):
                 leaderboards = self.api.bn_request(f"/data/wow/connected-realm/{rid}/mythic-leaderboard/index", token=True, namespace="dynamic")
                 for leaderboard in leaderboards['current_leaderboards']:
                     did = leaderboard['id']
-                    logger.info(f"{rid} {self.dungeon_cache[did]['name']} ({did})")
+                    logger.info(f"{rid} {self.dungeon_cache[did]['dungeon_name']} ({did})")
                     self.get_leaderboard(
                         rid, did, self.current_period)
 
