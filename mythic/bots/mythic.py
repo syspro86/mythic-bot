@@ -284,45 +284,59 @@ class MythicBot(BaseBot):
             }, [])
             return
         
+        updated = 0
         for spec in talents['specializations']:
-            spec_id = spec['specialization']['id']
-            for loadout in spec['loadouts']:
-                if not loadout['is_active']:
-                    continue
-                if 'selected_class_talents' not in loadout:
-                    continue
-                if 'selected_spec_talents' not in loadout:
-                    continue
+            try:
+                spec_id = spec['specialization']['id']
+                for loadout in spec['loadouts']:
+                    if not loadout['is_active']:
+                        continue
+                    if 'selected_class_talents' not in loadout:
+                        continue
+                    if 'selected_spec_talents' not in loadout:
+                        continue
 
-                talent_code = loadout['talent_loadout_code']
-                talent = {
-                    'player_realm': realm,
-                    'player_name': character_name,
-                    'spec_id': spec_id,
-                    'talent_code': talent_code,
-                    'last_update_ts': int(datetime.now().timestamp() * 1000)
-                }
-                slots = []
-                for ctal in loadout['selected_class_talents']:
-                    slots.append({
+                    talent_code = loadout['talent_loadout_code']
+                    talent = {
+                        'player_realm': realm,
+                        'player_name': character_name,
+                        'spec_id': spec_id,
                         'talent_code': talent_code,
-                        'talent_id': ctal['id'],
-                        'talent_rank': ctal['rank'],
-                        'talent_name': ctal['tooltip']['talent']['name'],
-                        'tooltip_id': ctal['tooltip']['talent']['id'],
-                        'spell_id': ctal['tooltip']['spell_tooltip']['spell']['id']
-                    })
-                for stal in loadout['selected_spec_talents']:
-                    slots.append({
-                        'talent_code': talent_code,
-                        'talent_id': stal['id'],
-                        'talent_rank': stal['rank'],
-                        'talent_name': stal['tooltip']['talent']['name'],
-                        'tooltip_id': stal['tooltip']['talent']['id'],
-                        'spell_id': stal['tooltip']['spell_tooltip']['spell']['id']
-                    })
+                        'last_update_ts': int(datetime.now().timestamp() * 1000)
+                    }
+                    slots = []
+                    for ctal in loadout['selected_class_talents']:
+                        slots.append({
+                            'talent_code': talent_code,
+                            'talent_id': ctal['id'],
+                            'talent_rank': ctal['rank'],
+                            'talent_name': ctal['tooltip']['talent']['name'],
+                            'tooltip_id': ctal['tooltip']['talent']['id'],
+                            'spell_id': ctal['tooltip']['spell_tooltip']['spell']['id']
+                        })
+                    for stal in loadout['selected_spec_talents']:
+                        slots.append({
+                            'talent_code': talent_code,
+                            'talent_id': stal['id'],
+                            'talent_rank': stal['rank'],
+                            'talent_name': stal['tooltip']['talent']['name'],
+                            'tooltip_id': stal['tooltip']['talent']['id'],
+                            'spell_id': stal['tooltip']['spell_tooltip']['spell']['id']
+                        })
+                    
+                    self.db.update_player_talent(talent, slots)
+                    updated += 1
+            except Exception as e:
+                self.print_error(e)
                 
-                self.db.update_player_talent(talent, slots)
+        if updated == 0:
+            self.db.update_player_talent({
+                'player_realm': realm,
+                'player_name': character_name,
+                'spec_id': 0,
+                'talent_code': '',
+                'last_update_ts': int(datetime.now().timestamp() * 1000)
+            }, [])  
 
         # pets = self.api.bn_request(f"/profile/wow/character/{realm}/{character_name}/collections/pets", token=True, namespace="profile")
         # if pets is not None and 'pets' in pets:
