@@ -85,8 +85,9 @@ class MythicBot(BaseBot):
                 start_timestamp = season['start_timestamp']
                 end_timestamp = season['end_timestamp'] if 'end_timestamp' in season else None
                 periods = []
-                for period in season['periods']:
-                    periods.append(period['id'])
+                if 'periods' in season:
+                    for period in season['periods']:
+                        periods.append(period['id'])
                 self.db.update_season(season_id, season_name, start_timestamp, end_timestamp, periods)
 
             periods = self.api.bn_request(
