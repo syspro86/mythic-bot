@@ -273,7 +273,7 @@ class MythicBot(BaseBot):
                              
     def update_player_talent(self, realm, realm_slug, character_name):
         talents = self.api.bn_request(f"/profile/wow/character/{realm_slug}/{character_name.lower()}/specializations", token=True, namespace="profile")
-        if talents is None or isinstance(talents, int):
+        if talents is None or isinstance(talents, int) or 'specializations' not in talents:
             self.db.update_player_talent({
                 'player_realm': realm,
                 'player_name': character_name,
