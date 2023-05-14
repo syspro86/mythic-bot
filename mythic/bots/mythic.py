@@ -310,7 +310,7 @@ class MythicBot(BaseBot):
                             'talent_code': talent_code,
                             'talent_id': ctal['id'],
                             'talent_rank': ctal['rank'],
-                            'talent_name': ctal['tooltip']['talent']['name'],
+                            'talent_name': self.get_field(ctal, ['tooltip', 'talent', 'name'], ''),
                             'tooltip_id': ctal['tooltip']['talent']['id'],
                             'spell_id': ctal['tooltip']['spell_tooltip']['spell']['id']
                         })
@@ -319,7 +319,7 @@ class MythicBot(BaseBot):
                             'talent_code': talent_code,
                             'talent_id': stal['id'],
                             'talent_rank': stal['rank'],
-                            'talent_name': stal['tooltip']['talent']['name'],
+                            'talent_name': self.get_field(stal, ['tooltip', 'talent', 'name'], ''),
                             'tooltip_id': stal['tooltip']['talent']['id'],
                             'spell_id': stal['tooltip']['spell_tooltip']['spell']['id']
                         })
@@ -345,6 +345,14 @@ class MythicBot(BaseBot):
         # mounts = self.api.bn_request(f"/profile/wow/character/{realm}/{character_name}/collections/mounts", token=True, namespace="profile")
         # if mounts is not None and 'mounts' in mounts:
         #     self.db.update_player(player, {'mounts': mounts['mounts']})
+
+    def get_field(self, obj, fields, default_value=None):
+        for f in fields:
+            if f in obj:
+                obj = obj[f]
+            else:
+                return default_value
+        return obj
 
     def on_schedule(self):
         try:
