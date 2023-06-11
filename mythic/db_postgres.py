@@ -707,6 +707,40 @@ class MythicDatabase:
 
         return None
     
+    def update_player(self, player):
+        try:
+            cur = self.conn.cursor()
+
+            cur.execute("""
+                INSERT INTO MYTHIC_PLAYER
+                (PLAYER_REALM, PLAYER_NAME, SPEC_ID, CLASS_NAME, SPEC_NAME, LAST_UPDATE_TS)
+                VALUES(%s, %s, %s, %s, %s, %s)
+                ON CONFLICT (PLAYER_REALM, PLAYER_NAME) DO UPDATE
+                SET SPEC_ID = %s,
+                CLASS_NAME = %s,
+                SPEC_NAME = %s,
+                LAST_UPDATE_TS = %s
+            """, [
+                player['player_realm'],
+                player['player_name'],
+                player['spec_id'],
+                player['class_name'],
+                player['spec_name'],
+                player['last_update_ts'],
+                player['spec_id'],
+                player['class_name'],
+                player['spec_name'],
+                player['last_update_ts']
+            ])
+            
+            self.conn.commit()
+
+        except:
+            self.conn.rollback()
+            traceback.print_exc()
+        finally:
+            cur.close()
+
     def update_player_talent(self, talent, slots):
         try:
             cur = self.conn.cursor()
