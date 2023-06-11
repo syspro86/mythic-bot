@@ -274,16 +274,35 @@ class MythicBot(BaseBot):
                              
     def update_player_talent(self, realm, realm_slug, character_name):
         talents = self.api.bn_request(f"/profile/wow/character/{realm_slug}/{character_name.lower()}/specializations", token=True, namespace="profile")
+        update_ts = int(datetime.now().timestamp() * 1000)
         if talents is None or isinstance(talents, int) or 'specializations' not in talents:
             self.db.update_player_talent({
                 'player_realm': realm,
                 'player_name': character_name,
                 'spec_id': 0,
                 'talent_code': '',
-                'last_update_ts': int(datetime.now().timestamp() * 1000)
+                'last_update_ts': update_ts
             }, [])
+
+            self.db.update_player({
+                'player_realm': realm,
+                'player_name': character_name,
+                'spec_id': 0,
+                'class_name': 'Error',
+                'spec_name': 'Error',
+                'last_update_ts': update_ts
+            })
             return
         
+        spec = self.spec_cache[talents['active_specialization']['id']]
+        self.db.update_player({
+            'player_realm': realm,
+            'player_name': character_name,
+            'spec_id': talents['active_specialization']['id'],
+            'class_name': spec['playable_class']['name'],
+            'spec_name': spec['name'],
+            'last_update_ts': update_ts
+        })
         updated = 0
         for spec in talents['specializations']:
             try:
@@ -302,7 +321,7 @@ class MythicBot(BaseBot):
                         'player_name': character_name,
                         'spec_id': spec_id,
                         'talent_code': talent_code,
-                        'last_update_ts': int(datetime.now().timestamp() * 1000)
+                        'last_update_ts': update_ts
                     }
                     slots = []
                     for ctal in loadout['selected_class_talents']:
@@ -335,7 +354,7 @@ class MythicBot(BaseBot):
                 'player_name': character_name,
                 'spec_id': 0,
                 'talent_code': '',
-                'last_update_ts': int(datetime.now().timestamp() * 1000)
+                'last_update_ts': update_ts
             }, [])  
 
         # pets = self.api.bn_request(f"/profile/wow/character/{realm}/{character_name}/collections/pets", token=True, namespace="profile")
