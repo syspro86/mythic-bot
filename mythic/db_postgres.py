@@ -643,7 +643,7 @@ class MythicDatabase:
             cur = self.conn.cursor()
 
             cur.execute("""
-                select player_realm, player_name from player_talent
+                select player_realm, player_name from mythic_player
                  where last_update_ts = 0
                 limit 1
             """)
@@ -661,9 +661,9 @@ class MythicDatabase:
                 and keystone_level >= 20
                 and keystone_upgrade >= 1
                 )
-                ) rp left outer join player_talent pt
-                on (rp.player_realm = pt.player_realm and rp.player_name = pt.player_name)
-                where last_update_ts is null
+                ) rp left outer join mythic_player mp
+                on (rp.player_realm = mp.player_realm and rp.player_name = mp.player_name)
+                where mp.last_update_ts is null
                 limit 1
             """)
 
@@ -680,10 +680,10 @@ class MythicDatabase:
                 and keystone_level >= 20
                 and keystone_upgrade >= 1
                 )
-                ) rp left outer join player_talent pt
-                on (rp.player_realm = pt.player_realm and rp.player_name = pt.player_name)
-                where last_update_ts < %s
-                order by last_update_ts asc
+                ) rp left outer join mythic_player mp
+                on (rp.player_realm = mp.player_realm and rp.player_name = mp.player_name)
+                where mp.last_update_ts < %s
+                order by mp.last_update_ts asc
                 limit 1
             """, [ int(datetime.now().timestamp() * 1000) - 1000*60*60*24 ] )
             
@@ -692,7 +692,7 @@ class MythicDatabase:
                 return { 'realm': r[0], 'name': r[1] }
 
             cur.execute("""
-                select player_realm, player_name from player_talent
+                select player_realm, player_name from mythic_player
                 order by last_update_ts asc
                 limit 1
             """)
