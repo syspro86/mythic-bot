@@ -13,7 +13,9 @@ class WowApi:
         self.access_token = self.get_token()
         logger.info(f'token = {self.access_token}')
 
-    def get_token(self):
+    @sleep_and_retry
+    @limits(calls=600, period=1)
+    def get_token(self, retry=10):
         url = f"https://{self.region}.battle.net/oauth/token"
         api_id = self.api_id
         api_secret = self.api_secret
@@ -31,7 +33,11 @@ class WowApi:
             res_obj = res.json()
             if 'access_token' in res_obj:
                 return res_obj['access_token']
-        return None
+        
+        if retry >= 0:
+            return self.get_token(retry - 1)
+        
+        return ''
 
     def locale(self):
         if self.region == "us":
