@@ -15,3 +15,4 @@ COPY startup.sh /app/
 RUN chmod +x /app/startup.sh
 
 ENTRYPOINT ["/bin/bash", "/app/startup.sh"]
+
