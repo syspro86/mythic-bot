@@ -42,3 +42,4 @@ wrapt>=1.13.3
 yarg>=0.1.9
 ratelimit>=2.2.1
 psycopg2>=2.9.5
+pip_system_certs
