@@ -14,7 +14,8 @@ class WowApi:
         logger.info(f'token = {self.access_token}')
 
     @sleep_and_retry
-    @limits(calls=600, period=1)
+    @limits(calls=100, period=1)
+    @limits(calls=36000, period=60*60)
     def get_token(self, retry=10):
         url = f"https://{self.region}.battle.net/oauth/token"
         api_id = self.api_id
@@ -51,7 +52,8 @@ class WowApi:
         return ""
 
     @sleep_and_retry
-    @limits(calls=600, period=1)
+    @limits(calls=100, period=1)
+    @limits(calls=36000, period=60*60)
     def bn_request(self, url, token=False, namespace=None, retry=10):
         if not url.startswith('http'):
             url = f"https://{self.region}.api.blizzard.com:443" + url
