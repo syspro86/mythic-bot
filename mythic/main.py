@@ -1,3 +1,4 @@
+import pip_system_certs.wrapt_requests
 import sys
 import subprocess
 from mythic.bots.base import BaseBot
