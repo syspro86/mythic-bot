@@ -79,6 +79,11 @@ class WowApi:
                     return res.status_code
             else:
                 return res.status_code
+        except requests.exceptions.SSLError as e:
+            logger.info(f'ssl error! retry={retry}')
+            if retry > 0:
+                return self.bn_request(url, token=token, namespace=namespace, retry=retry-1)
+            raise e
         except requests.exceptions.Timeout:
             logger.info(f'timeout! retry={retry}')
             if retry > 0:
