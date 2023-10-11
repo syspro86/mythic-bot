@@ -52,7 +52,8 @@ class WowApi:
 
     @sleep_and_retry
     @limits(calls=600, period=1)
-    def bn_request(self, url, token=False, namespace=None, retry=10):
+    def bn_request(self, urlp, token=False, namespace=None, retry=10):
+        url = urlp
         if not url.startswith('http'):
             url = f"https://{self.region}.api.blizzard.com:443" + url
 
@@ -80,12 +81,12 @@ class WowApi:
             else:
                 return res.status_code
         except requests.exceptions.SSLError as e:
-            logger.info(f'ssl error! retry={retry}')
+            logger.info(f'ssl error! retry={retry}, url={url}')
             if retry > 0:
-                return self.bn_request(url, token=token, namespace=namespace, retry=retry-1)
+                return self.bn_request(urlp, token=token, namespace=namespace, retry=retry-1)
             raise e
         except requests.exceptions.Timeout:
-            logger.info(f'timeout! retry={retry}')
+            logger.info(f'timeout! retry={retry}, url={url}')
             if retry > 0:
-                return self.bn_request(url, token=token, namespace=namespace, retry=retry-1)
+                return self.bn_request(urlp, token=token, namespace=namespace, retry=retry-1)
             return None
