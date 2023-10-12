@@ -79,7 +79,10 @@ class WowApi:
                     return self.bn_request(urlp, token=token, namespace=namespace, retry=retry-1)
                 else:
                     return res.status_code
+            elif res.status_code == 404:
+                return res.status_code
             else:
+                logger.info(f'invalid status_code={res.status_code}, url={url}')
                 return res.status_code
         except requests.exceptions.SSLError as e:
             logger.info(f'ssl error! retry={retry}, url={url}')
