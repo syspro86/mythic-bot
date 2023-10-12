@@ -72,10 +72,11 @@ class WowApi:
             if res.status_code == 200:
                 return res.json()
             elif res.status_code == 401:
-                logger.info('invalid token')
+                logger.info(f'invalid token retry={retry}, url={url}')
                 if retry >= 0:
                     self.access_token = self.get_token()
-                    return self.bn_request(url, token=token, namespace=namespace, retry=retry-1)
+                    logger.info(f'new token={self.access_token}')
+                    return self.bn_request(urlp, token=token, namespace=namespace, retry=retry-1)
                 else:
                     return res.status_code
             else:
