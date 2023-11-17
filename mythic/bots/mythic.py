@@ -58,6 +58,9 @@ class MythicBot(BaseBot):
                 dungeon_id = dungeon['id']
                 d = self.api.bn_request(
                     f"/data/wow/mythic-keystone/dungeon/{dungeon_id}", token=True, namespace="dynamic")
+                if isinstance(d, int):
+                    logger.info(f"failed to update dungeon_id: {dungeon_id}, code: {d}")
+                    continue
                 self.db.update_dungeon(d)
                 self.dungeon_cache[dungeon_id] = self.db.find_dungeon(dungeon_id)
 
@@ -68,6 +71,8 @@ class MythicBot(BaseBot):
                 spec_id = spec['id']
                 spec = self.api.bn_request(
                     f"/data/wow/playable-specialization/{spec_id}", token=True, namespace="static")
+                if isinstance(spec, int):
+                    logger.info(f"failed to get spec_id: {spec_id}, code: {spec}")
                 self.spec_cache[spec_id] = spec
 
             seasons = self.api.bn_request(
@@ -257,6 +262,8 @@ class MythicBot(BaseBot):
         for season in profile['seasons']:
             href = season['key']['href']
             season_res = self.api.bn_request(href, token=True)
+            if isinstance(season_res, int):
+                continue
             #if season_res['season']['id'] != self.current_season:
             #    continue
             if 'best_runs' not in season_res:
