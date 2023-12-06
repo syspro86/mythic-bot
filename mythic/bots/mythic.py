@@ -58,6 +58,9 @@ class MythicBot(BaseBot):
                 dungeon_id = dungeon['id']
                 d = self.api.bn_request(
                     f"/data/wow/mythic-keystone/dungeon/{dungeon_id}", token=True, namespace="dynamic")
+                if isinstance(d, int):
+                    logger.info(f"failed to update dungeon_id: {dungeon_id}, code: {d}")
+                    continue
                 self.db.update_dungeon(d)
                 self.dungeon_cache[dungeon_id] = self.db.find_dungeon(dungeon_id)
 
@@ -68,6 +71,8 @@ class MythicBot(BaseBot):
                 spec_id = spec['id']
                 spec = self.api.bn_request(
                     f"/data/wow/playable-specialization/{spec_id}", token=True, namespace="static")
+                if isinstance(spec, int):
+                    logger.info(f"failed to get spec_id: {spec_id}, code: {spec}")
                 self.spec_cache[spec_id] = spec
 
             seasons = self.api.bn_request(
@@ -107,6 +112,8 @@ class MythicBot(BaseBot):
                 f"season: {self.current_season}, period: {self.current_period}, ends: {end_timestamp_str}")
 
             self.need_init = False
+        except TypeError:
+            self.need_init = True
         finally:
             self.db.disconnect()
 
@@ -257,6 +264,8 @@ class MythicBot(BaseBot):
         for season in profile['seasons']:
             href = season['key']['href']
             season_res = self.api.bn_request(href, token=True)
+            if isinstance(season_res, int):
+                continue
             #if season_res['season']['id'] != self.current_season:
             #    continue
             if 'best_runs' not in season_res:
@@ -383,6 +392,9 @@ class MythicBot(BaseBot):
                 self.init_api(True)
                 self.inserted_id_set = []
 
+                if self.need_init:
+                    return
+
                 # 현재 시간에 맞는 period가 없음.
                 if self.end_timestamp < start_ts:
                     return
@@ -391,11 +403,13 @@ class MythicBot(BaseBot):
 
             for rid in self.connected_realms:
                 leaderboards = self.api.bn_request(f"/data/wow/connected-realm/{rid}/mythic-leaderboard/index", token=True, namespace="dynamic")
+                if not isinstance(leaderboards, int):
+                    continue
+
                 for leaderboard in leaderboards['current_leaderboards']:
                     did = leaderboard['id']
                     logger.info(f"{rid} {self.dungeon_cache[did]['dungeon_name']} ({did})")
-                    self.get_leaderboard(
-                        rid, did, self.current_period)
+                    self.get_leaderboard(rid, did, self.current_period)
 
             cur_ts = int(datetime.now().timestamp() * 1000)
             logger.info(f'collected in {cur_ts - start_ts} ms')
