@@ -77,12 +77,13 @@ class WowApi:
                     self.access_token = self.get_token()
                     logger.info(f'new token={self.access_token}')
                     return self.bn_request(urlp, token=token, namespace=namespace, retry=retry-1)
-                else:
-                    return res.status_code
+                return res.status_code
             elif res.status_code == 404:
                 return res.status_code
             else:
-                logger.info(f'invalid status_code={res.status_code}, url={url}')
+                logger.info(f'invalid status_code={res.status_code}, retry={retry}, url={url}')
+                if retry >= 0:
+                    return self.bn_request(urlp, token=token, namespace=namespace, retry=retry-1)
                 return res.status_code
         except requests.exceptions.SSLError as e:
             logger.info(f'ssl error! retry={retry}, url={url}')
