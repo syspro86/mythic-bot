@@ -112,6 +112,8 @@ class MythicBot(BaseBot):
                 f"season: {self.current_season}, period: {self.current_period}, ends: {end_timestamp_str}")
 
             self.need_init = False
+        except TypeError:
+            self.need_init = True
         finally:
             self.db.disconnect()
 
@@ -390,6 +392,9 @@ class MythicBot(BaseBot):
                 self.init_api(True)
                 self.inserted_id_set = []
 
+                if self.need_init:
+                    return
+
                 # 현재 시간에 맞는 period가 없음.
                 if self.end_timestamp < start_ts:
                     return
@@ -398,11 +403,13 @@ class MythicBot(BaseBot):
 
             for rid in self.connected_realms:
                 leaderboards = self.api.bn_request(f"/data/wow/connected-realm/{rid}/mythic-leaderboard/index", token=True, namespace="dynamic")
+                if not isinstance(leaderboards, int):
+                    continue
+
                 for leaderboard in leaderboards['current_leaderboards']:
                     did = leaderboard['id']
                     logger.info(f"{rid} {self.dungeon_cache[did]['dungeon_name']} ({did})")
-                    self.get_leaderboard(
-                        rid, did, self.current_period)
+                    self.get_leaderboard(rid, did, self.current_period)
 
             cur_ts = int(datetime.now().timestamp() * 1000)
             logger.info(f'collected in {cur_ts - start_ts} ms')
