@@ -152,10 +152,11 @@ class TelegramBot(BaseBot):
                         {self.dungeon_name(record['dungeon_id'])}+{record['keystone_level']} ({datetime.fromtimestamp(record['completed_timestamp'] / 1000).strftime('%Y-%m-%d %H:%M')})
                         ({record['keystone_upgrade']}) {int(record['duration'] / 60000)}분 {int((record['duration'] / 1000) % 60)}초
                         """)
-                        for member in record['members']:
-                            record_msg += textwrap.dedent(f"""
-                            {member['name']}-{member['realm']} ({member['specName']} {member['className']})
-                            """)
+                        if 'members' in record:
+                            for member in record['members']:
+                                record_msg += textwrap.dedent(f"""
+                                {member['name']}-{member['realm']} ({member['specName']} {member['className']})
+                                """)
                         msg += record_msg.replace('\n\n',
                                                   '\n').strip() + "\n\n"
                     self.telegram.send_message(chat_id=chat_id, text=msg)
