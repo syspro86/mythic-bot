@@ -257,26 +257,26 @@ class MythicDatabase:
             cur.execute("""
                 merge into mythic_botuser b
                 using dual
-                on (b.user_id = %s)
+                on (b.id = %s)
                 when matched then
                     update set web_session_id = %s
                 when not matched then
-                    insert (user_id, web_session_id)
+                    insert (id, web_session_id)
                     values (%s, %s)
             """, [user['_id'], (user['webSessionId'] if 'webSessionId' in user else ' '),
                   user['_id'], (user['webSessionId'] if 'webSessionId' in user else ' ')])
 
             cur.execute(
-                "delete from mythic_botuser_player where user_id = %s", [user['_id']])
+                "delete from mythic_botuser_player where botuser_id = %s", [user['_id']])
 
             for char in user['characters']:
                 rn = char.split('-')
                 if len(rn) == 2:
                     cur.execute(
-                        "insert into mythic_botuser_player (user_id, player_realm, player_name) values (%s, %s, %s)",
+                        "insert into mythic_botuser_player (botuser_id, player_realm, player_name) values (%s, %s, %s)",
                         [user['_id'], rn[1], rn[0]])
 
-            # cur.execute("delete from mythic_botuser_comment where user_id = $1", user['_id'])
+            # cur.execute("delete from mythic_botuser_comment where botuser_id = $1", user['_id'])
 
             self.conn.commit()
         except Exception as e:
@@ -291,32 +291,32 @@ class MythicDatabase:
             cur = self.conn.cursor()
             if chat_id is not None:
                 cur.execute("""
-                    SELECT mb.USER_ID, mb.WEB_SESSION_ID, mbp.PLAYER_REALM, mbp.PLAYER_NAME
+                    SELECT mb.ID, mb.WEB_SESSION_ID, mbp.PLAYER_REALM, mbp.PLAYER_NAME
                       FROM MYTHIC_BOTUSER mb, MYTHIC_BOTUSER_PLAYER mbp
-                     WHERE mb.USER_ID = mbp.USER_ID
-                       AND mb.USER_ID = %s
+                     WHERE mb.ID = mbp.BOTUSER_ID
+                       AND mb.ID = %s
                 """, [str(chat_id)])
             elif session is not None:
                 cur.execute("""
-                    SELECT mb.USER_ID, mb.WEB_SESSION_ID, mbp.PLAYER_REALM, mbp.PLAYER_NAME
+                    SELECT mb.ID, mb.WEB_SESSION_ID, mbp.PLAYER_REALM, mbp.PLAYER_NAME
                       FROM MYTHIC_BOTUSER mb, MYTHIC_BOTUSER_PLAYER mbp
-                     WHERE mb.USER_ID = mbp.USER_ID
+                     WHERE mb.ID = mbp.BOTUSER_ID
                        AND mb.WEB_SESSION_ID = %s
                 """, [session])
             else:
                 if char_name.find('-') >= 0:
                     cur.execute("""
-                        SELECT mb.USER_ID, mb.WEB_SESSION_ID, mbp.PLAYER_REALM, mbp.PLAYER_NAME
+                        SELECT mb.ID, mb.WEB_SESSION_ID, mbp.PLAYER_REALM, mbp.PLAYER_NAME
                         FROM MYTHIC_BOTUSER mb, MYTHIC_BOTUSER_PLAYER mbp
-                        WHERE mb.USER_ID = mbp.USER_ID
+                        WHERE mb.ID = mbp.BOTUSER_ID
                         AND mbp.PLAYER_NAME = %s
                         AND mbp.PLAYER_REALM = %s
                     """, char_name.split('-')[0:2])
                 else:
                     cur.execute("""
-                        SELECT mb.USER_ID, mb.WEB_SESSION_ID, mbp.PLAYER_REALM, mbp.PLAYER_NAME
+                        SELECT mb.ID, mb.WEB_SESSION_ID, mbp.PLAYER_REALM, mbp.PLAYER_NAME
                         FROM MYTHIC_BOTUSER mb, MYTHIC_BOTUSER_PLAYER mbp
-                        WHERE mb.USER_ID = mbp.USER_ID
+                        WHERE mb.ID = mbp.BOTUSER_ID
                         AND mbp.PLAYER_NAME = %s
                     """, [char_name])
 
