@@ -261,6 +261,20 @@ class MythicBot(BaseBot):
             return
         if 'seasons' not in profile:
             return
+        
+        if 'current_period' in profile:
+            if 'best_runs' in profile['current_period']:
+                for run in profile['current_period']['best_runs']:
+                    board = {
+                        'period': profile['current_period']['period']['id'],
+                        'season': self.season
+                    }
+                    
+                    for mem in run['members']:
+                        mem['profile'] = mem['character']
+
+                    self.insert_record(board, run, run['dungeon']['id'])
+
         for season in profile['seasons']:
             href = season['key']['href']
             season_res = self.api.bn_request(href, token=True)
